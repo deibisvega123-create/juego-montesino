@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Guerra en el Bosque | Retro Arcade Commando</title>
+  <meta name="description" content="Guerra en el Bosque - Juego de acción táctica estilo Contra y Metal Slug en la selva con vehículos, armas pesadas y bases enemigas.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Black+Ops+One&family=Orbitron:wght@500;700;900&family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="game-container">
+    <!-- Main Game Canvas -->
+    <canvas id="gameCanvas" width="1280" height="720"></canvas>
+
+    <!-- Custom Animated Crosshair -->
+    <div id="custom-crosshair" class="crosshair"></div>
+
+    <!-- HUD Overlay -->
+    <div id="hud-overlay" class="hud-overlay hidden">
+      <!-- Top Left: Lives & Health -->
+      <div class="hud-panel hud-left">
+        <div class="hud-title">SOLDADO COMANDO</div>
+        <div class="lives-container" id="lives-container">
+          <span class="life-icon" id="life-1">🪖</span>
+          <span class="life-icon" id="life-2">🪖</span>
+          <span class="life-icon" id="life-3">🪖</span>
+        </div>
+        <div class="player-hp-container">
+          <div class="player-hp-bar-bg">
+            <div id="player-hp-bar" class="player-hp-fill"></div>
+          </div>
+          <span class="player-hp-text" id="player-hp-text">SALUD: 100%</span>
+        </div>
+        <div class="weapon-badge" id="hud-weapon">
+          <span class="weapon-icon" id="weapon-icon">🔫</span>
+          <div class="weapon-info">
+            <span class="weapon-name" id="weapon-name">RIFLE DE ASALTO</span>
+            <span class="weapon-ammo" id="weapon-ammo">INF</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Top Center: Mission Info & Boss Bar -->
+      <div class="hud-panel hud-center">
+        <div id="hud-level-badge" class="level-badge">NIVEL 1/5: SELVA ESMERALDA</div>
+        <div id="hud-mission-tag" class="mission-tag">MISIÓN: DESTRUIR LA BASE ENEMIGA</div>
+        <div class="progress-bar-container">
+          <div class="progress-label">AVANCE EN LA SELVA</div>
+          <div class="progress-bar-bg">
+            <div id="mission-progress-bar" class="progress-bar-fill"></div>
+            <div id="player-radar-icon" class="radar-marker">🎖️</div>
+            <div class="radar-base-marker">🏰</div>
+          </div>
+        </div>
+        <!-- Boss HP Bar (Hidden until boss) -->
+        <div id="boss-hp-container" class="boss-hp-container hidden">
+          <div class="boss-title" id="boss-title">⚠️ FORTALEZA DEL BOSQUE: NÚCLEO CENTRAL ⚠️</div>
+          <div class="boss-hp-bar-bg">
+            <div id="boss-hp-bar" class="boss-hp-fill"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Top Right: Score, Coins, Difficulty & Pause Button -->
+      <div class="hud-panel hud-right">
+        <div class="hud-stats">
+          <div class="stat-item">
+            <span class="stat-label">PUNTOS</span>
+            <span class="stat-value" id="hud-score">000000</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">MONEDAS</span>
+            <span class="stat-value coin-val" id="hud-coins">🪙 0</span>
+          </div>
+        </div>
+        <div class="hud-actions">
+          <span class="difficulty-tag" id="hud-difficulty-tag">NORMAL</span>
+          <button id="btn-pause" class="hud-btn" title="Pausa (ESC / P)">⏸️</button>
+          <button id="btn-mute" class="hud-btn" title="Sonido">🔊</button>
+        </div>
+      </div>
+
+      <!-- Vehicle HUD Indicator (Shown when player is in Tank or near Tank) -->
+      <div id="vehicle-hud" class="vehicle-hud hidden">
+        <div class="vehicle-badge">
+          <span class="vehicle-icon">🛡️</span>
+          <div class="vehicle-details">
+            <div class="vehicle-title">TANQUE DE COMBATE ALIADO T-80</div>
+            <div class="vehicle-armor-bar-bg">
+              <div id="vehicle-armor-fill" class="vehicle-armor-fill"></div>
+            </div>
+          </div>
+          <span class="vehicle-exit-hint">[E] SALIR DEL TANQUE</span>
+        </div>
+      </div>
+
+      <!-- Interaction Prompt (e.g. "[E] SUBIR AL TANQUE") -->
+      <div id="interaction-prompt" class="interaction-prompt hidden">
+        <span class="key-hint">E</span>
+        <span class="prompt-text" id="interaction-prompt-text">SUBIR AL TANQUE</span>
+      </div>
+    </div>
+
+    <!-- Main Menu Screen -->
+    <div id="screen-menu" class="screen-overlay">
+      <div class="screen-backdrop"></div>
+      <div class="menu-content">
+        <div class="game-logo">
+          <div class="game-subtitle">OPERACIÓN SELVA TÁCTICA</div>
+          <h1 class="game-title">GUERRA EN EL BOSQUE</h1>
+          <div class="game-badge">RETRO RUN & GUN ARCADE ACTION • 5 NIVELES</div>
+        </div>
+
+        <div class="menu-buttons">
+          <button id="btn-start-game" class="btn-arcade btn-primary">
+            <span class="btn-glow"></span>
+            <span class="btn-text">INICIAR CAMPAÑA (NIVEL 1)</span>
+          </button>
+
+          <button id="btn-select-level" class="btn-arcade btn-secondary">
+            <span class="btn-text">SELECCIONAR NIVEL (1 - 5) 🗺️</span>
+          </button>
+          
+          <div class="difficulty-selector-panel">
+            <span class="selector-title">DIFICULTAD:</span>
+            <div class="difficulty-buttons">
+              <button class="btn-diff" data-diff="easy">FÁCIL</button>
+              <button class="btn-diff active" data-diff="normal">NORMAL</button>
+              <button class="btn-diff" data-diff="hard">DIFÍCIL</button>
+            </div>
+            <div id="diff-description" class="diff-description">
+              Equilibrio clásico arcade: daño estándar y suministros tácticos.
+            </div>
+          </div>
+
+          <button id="btn-how-to-play" class="btn-arcade btn-secondary">
+            <span class="btn-text">CÓMO JUGAR</span>
+          </button>
+        </div>
+
+        <div class="menu-footer">
+          <span>CONTROLES: [A][D] MOVER | [W] SALTAR | [RATÓN] APUNTAR Y DISPARAR | [E] TANQUE</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Level Selector Modal -->
+    <div id="screen-level-select" class="screen-overlay hidden">
+      <div class="screen-backdrop"></div>
+      <div class="dialog-box level-select-box">
+        <h2 class="dialog-title">SELECCIÓN DE OPERACIÓN</h2>
+        <p class="dialog-subtitle">Elige el sector selvático para tu misión de combate:</p>
+        <div class="level-cards-grid">
+          <div class="level-card" data-level="1">
+            <div class="card-biome-tag emerald">BIOMA 1</div>
+            <div class="card-title">1. SELVA ESMERALDA</div>
+            <div class="card-desc">Infiltración en Base Alfa y destrucción del Búnker Fortificado.</div>
+            <div class="card-boss">JEFE: Fortaleza del Bosque</div>
+          </div>
+          <div class="level-card" data-level="2">
+            <div class="card-biome-tag swamp">BIOMA 2</div>
+            <div class="card-title">2. PANTANO TÓXICO</div>
+            <div class="card-desc">Ciénaga con esporas corrosivas y la Refinería Química enemiga.</div>
+            <div class="card-boss">JEFE: Generador Tóxico</div>
+          </div>
+          <div class="level-card" data-level="3">
+            <div class="card-biome-tag volcanic">BIOMA 3</div>
+            <div class="card-title">3. SELVA VOLCÁNICA</div>
+            <div class="card-desc">Ríos de lava, cenizas ardientes y el temible Cañón Geotérmico.</div>
+            <div class="card-boss">JEFE: Cañón de Magma</div>
+          </div>
+          <div class="level-card" data-level="4">
+            <div class="card-biome-tag storm">BIOMA 4</div>
+            <div class="card-title">4. TORMENTA NOCTURNA</div>
+            <div class="card-desc">Sigilo bajo lluvia torrencial, relámpagos y el Complejo Radar.</div>
+            <div class="card-boss">JEFE: Radar y Guía de Misiles</div>
+          </div>
+          <div class="level-card boss-card" data-level="5">
+            <div class="card-biome-tag temple">¡BATALLA FINAL!</div>
+            <div class="card-title">5. TEMPLO ANCESTRAL ⭐</div>
+            <div class="card-desc">Duelo a muerte en ruinas megalíticas contra el implacable Super Soldado.</div>
+            <div class="card-boss golden">JEFE FINAL: Coronel Vulcan</div>
+          </div>
+        </div>
+        <button id="btn-close-level-select" class="btn-arcade btn-secondary">VOLVER AL MENÚ</button>
+      </div>
+    </div>
+
+    <!-- How to Play Modal -->
+    <div id="screen-instructions" class="screen-overlay hidden">
+      <div class="screen-backdrop"></div>
+      <div class="dialog-box">
+        <h2 class="dialog-title">MANUAL DE COMBATE</h2>
+        <div class="instructions-grid">
+          <div class="instruction-card">
+            <div class="card-icon">🕹️</div>
+            <h3>MOVIMIENTO</h3>
+            <p><strong>[A] / [D]</strong> o <strong>[◀] / [▶]</strong>: Correr en la selva</p>
+            <p><strong>[W]</strong> / <strong>[ESPACIO]</strong>: Saltar plataformas</p>
+            <p><strong>[S]</strong> o <strong>[▼]</strong>: Agacharse / Bajar plataformas</p>
+          </div>
+          <div class="instruction-card">
+            <div class="card-icon">🎯</div>
+            <h3>DISPARO Y DEFENSA</h3>
+            <p><strong>[RATÓN]</strong>: Apuntar en 360° | <strong>[CLIC]</strong> Disparar</p>
+            <p>¡Atento al aviso <strong>"!"</strong> o láser para <strong>agacharte [S] o saltar</strong>!</p>
+            <p>¡Puedes <strong>derribar misiles y bombas enemigas</strong> disparándoles en el aire!</p>
+          </div>
+          <div class="instruction-card">
+            <div class="card-icon">🚜</div>
+            <h3>VEHÍCULOS Y TANQUE</h3>
+            <p>Presiona <strong>[E]</strong> para entrar/salir del <strong>Tanque Aliado</strong></p>
+            <p>El tanque absorbe impactos, aplasta infantería y dispara un cañón de 120mm</p>
+          </div>
+          <div class="instruction-card">
+            <div class="card-icon">🛡️</div>
+            <h3>SALUD Y SUMINISTROS</h3>
+            <p>Dispones de <strong>3 Vidas</strong> con <strong>Blindaje Táctico (100 HP)</strong></p>
+            <p>Recoge <strong>Botiquines</strong> para restaurar blindaje y vidas perdidas</p>
+            <p>¡Llega a la <strong>Base Enemiga</strong> y destruye su núcleo para ganar!</p>
+          </div>
+        </div>
+        <button id="btn-close-instructions" class="btn-arcade btn-primary">ENTENDIDO, A COMBATIR</button>
+      </div>
+    </div>
+
+    <!-- Pause Menu Modal -->
+    <div id="screen-pause" class="screen-overlay hidden">
+      <div class="screen-backdrop"></div>
+      <div class="dialog-box">
+        <h2 class="dialog-title">MISIÓN EN PAUSA</h2>
+        <div class="pause-options">
+          <button id="btn-resume" class="btn-arcade btn-primary">REANUDAR COMBATE</button>
+          
+          <div class="difficulty-selector-panel">
+            <span class="selector-title">CAMBIAR DIFICULTAD:</span>
+            <div class="difficulty-buttons">
+              <button class="btn-diff-pause" data-diff="easy">FÁCIL</button>
+              <button class="btn-diff-pause active" data-diff="normal">NORMAL</button>
+              <button class="btn-diff-pause" data-diff="hard">DIFÍCIL</button>
+            </div>
+          </div>
+
+          <div class="audio-controls-row">
+            <span>VOLUMEN GENERAL:</span>
+            <input type="range" id="volume-slider" min="0" max="1" step="0.05" value="0.7">
+          </div>
+
+          <button id="btn-restart" class="btn-arcade btn-secondary">REINICIAR MISIÓN</button>
+          <button id="btn-quit" class="btn-arcade btn-danger">MENÚ PRINCIPAL</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Game Over Screen -->
+    <div id="screen-gameover" class="screen-overlay hidden">
+      <div class="screen-backdrop"></div>
+      <div class="dialog-box gameover-box">
+        <h2 class="gameover-title">SOLDADO CAÍDO</h2>
+        <p class="gameover-subtitle">Las fuerzas enemigas defendieron el bosque...</p>
+        
+        <div class="stats-summary">
+          <div class="stat-row">
+            <span>Puntuación Final:</span>
+            <strong id="final-score">0</strong>
+          </div>
+          <div class="stat-row">
+            <span>Monedas Rescatadas:</span>
+            <strong id="final-coins">0</strong>
+          </div>
+          <div class="stat-row">
+            <span>Enemigos Neutralizados:</span>
+            <strong id="final-kills">0</strong>
+          </div>
+        </div>
+
+        <div class="screen-actions">
+          <button id="btn-retry" class="btn-arcade btn-primary">REINTENTAR MISIÓN</button>
+          <button id="btn-gameover-menu" class="btn-arcade btn-secondary">MENÚ PRINCIPAL</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Floating Mission Accomplished Banner (Retro Arcade Style) -->
+    <div id="mission-accomplished-banner" class="mission-banner hidden">
+      <div class="mission-banner-frame">
+        <div class="banner-top-stars">
+          <span class="star-icon">★</span>
+          <span class="star-icon main-star">★</span>
+          <span class="star-icon">★</span>
+        </div>
+        <div class="banner-text-wrapper">
+          <h2 class="banner-title-text">¡MISIÓN CUMPLIDA!</h2>
+        </div>
+        <div class="banner-divider-bar">
+          <span class="bar-wing left"></span>
+          <span class="bar-insignia">🎖️ SECTOR LIBERADO 🎖️</span>
+          <span class="bar-wing right"></span>
+        </div>
+        <p class="banner-sub-text">BASE ENEMIGA TOTALMENTE ANIQUILADA</p>
+        <div class="banner-badge-glow">OPERACIÓN COMPLETADA CON ÉXITO</div>
+      </div>
+    </div>
+
+    <!-- Victory Screen -->
+    <div id="screen-victory" class="screen-overlay hidden">
+      <div class="screen-backdrop"></div>
+      <div class="dialog-box victory-box">
+        <div class="victory-medal">🎖️</div>
+        <div class="victory-header-badge">REPORTE FINAL DE MISIÓN</div>
+        <h2 class="victory-title">¡MISIÓN CUMPLIDA!</h2>
+        <p class="victory-subtitle">¡La base enemiga ha sido completamente aniquilada y el bosque ha sido liberado!</p>
+        
+        <div class="stats-summary">
+          <div class="stat-row">
+            <span>Puntos Totales (Con Bonus Base):</span>
+            <strong id="victory-score">0</strong>
+          </div>
+          <div class="stat-row">
+            <span>Monedas Acumuladas:</span>
+            <strong id="victory-coins">0</strong>
+          </div>
+          <div class="stat-row">
+            <span>Enemigos Neutralizados:</span>
+            <strong id="victory-kills">0</strong>
+          </div>
+          <div class="stat-row">
+            <span>Dificultad Superada:</span>
+            <strong id="victory-difficulty">NORMAL</strong>
+          </div>
+        </div>
+
+        <div class="screen-actions">
+          <button id="btn-next-level" class="btn-arcade btn-primary">SIGUIENTE NIVEL ⏩</button>
+          <button id="btn-play-again" class="btn-arcade btn-secondary">REINTENTAR NIVEL</button>
+          <button id="btn-victory-menu" class="btn-arcade btn-secondary">MENÚ PRINCIPAL</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cinematic Overlay (Helicopter in flames intro) -->
+    <div id="cinematic-overlay" class="cinematic-overlay hidden">
+      <div class="cinematic-bars top"></div>
+      <div class="cinematic-bars bottom"></div>
+      
+      <div class="cinematic-hud">
+        <div class="cinematic-status" id="cinematic-status">⚠️ ALERTA: TRANSPORTE AÉREO EN LLAMAS ⚠️</div>
+        <div class="cinematic-subtitles" id="cinematic-subtitles">
+          "¡MAYDAY, MAYDAY! ¡NOS DIERON EN LA TURBINA! ¡EVACÚEN LA ZONA!"
+        </div>
+        <button id="btn-skip-cinematic" class="btn-skip">
+          SALTAR CINEMÁTICA [ESPACIO]
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="js/globals.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/particles.js"></script>
+  <script src="js/weapons.js"></script>
+  <script src="js/traps.js"></script>
+  <script src="js/pickups.js"></script>
+  <script src="js/vehicles.js"></script>
+  <script src="js/enemies.js"></script>
+  <script src="js/world.js"></script>
+  <script src="js/cinematic.js"></script>
+  <script src="js/game.js"></script>
+</body>
+</html>
