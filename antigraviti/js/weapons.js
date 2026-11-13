@@ -1,3 +1,4 @@
+/* ===== weapons.js ===== */
 /**
  * GUERRA EN EL BOSQUE - SISTEMA DE ARMAS Y PROYECTILES
  * Maneja el arsenal táctico: Rifle estándar, Disparo Disperso (S),
@@ -300,5 +301,39 @@ class Projectile {
       ctx.stroke();
     }
     ctx.restore();
+  }
+}
+
+// ============================================================================
+// MISIL ENEMIGO TELEDIRIGIDO (helicópteros artillados y jefe Titán-X)
+// Persigue al jugador durante un tiempo limitado y se puede derribar a tiros.
+// ============================================================================
+class EnemyMissile extends Projectile {
+  constructor(x, y, targetX, targetY) {
+    const speed = 5.0;
+    const angle = Math.atan2(targetY - y, targetX - x);
+    super(x, y, Math.cos(angle) * speed, Math.sin(angle) * speed, WEAPON_TYPES.ROCKET, 'enemy', 30);
+    this.isBomb = true; // permite derribarlo disparándole
+    this.speed = speed;
+    this.homingTime = 1.8; // segundos de guiado
+    this.maxDistance = 1100;
+  }
+
+  update(dt, world) {
+    if (!this.dead && this.homingTime > 0 && typeof player !== 'undefined' && player && !player.dead) {
+      this.homingTime -= dt;
+      const tx = player.inVehicle && player.tank ? player.tank.x : player.x;
+      const ty = player.inVehicle && player.tank ? player.tank.y : player.y;
+      const desired = Math.atan2(ty - this.y, tx - this.x);
+      let current = Math.atan2(this.vy, this.vx);
+      let diff = desired - current;
+      while (diff > Math.PI) diff -= Math.PI * 2;
+      while (diff < -Math.PI) diff += Math.PI * 2;
+      const maxTurn = 1.5 * dt;
+      current += Math.max(-maxTurn, Math.min(maxTurn, diff));
+      this.vx = Math.cos(current) * this.speed;
+      this.vy = Math.sin(current) * this.speed;
+    }
+    return super.update(dt, world);
   }
 }

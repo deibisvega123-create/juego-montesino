@@ -1,3 +1,4 @@
+/* ===== traps.js ===== */
 /**
  * GUERRA EN EL BOSQUE - SISTEMA DE TRAMPAS DEL ENTORNO
  * Minas terrestres con detección de proximidad, picos de bambú en el suelo

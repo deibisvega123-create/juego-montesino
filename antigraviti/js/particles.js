@@ -1,3 +1,4 @@
+/* ===== particles.js ===== */
 /**
  * GUERRA EN EL BOSQUE - SISTEMA DE PARTÍCULAS
  * Efectos visuales de explosiones, humo, fuego, casquillos, hojas de la selva y chispas.

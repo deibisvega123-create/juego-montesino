@@ -1,3 +1,26 @@
+/* ===== world.js ===== */
+      this.platforms = [
+        { x: 600, y: 260, w: 220, h: 18, type: 'air_radar' },
+        { x: 1350, y: 340, w: 260, h: 18, type: 'air_radar' },
+        { x: 2150, y: 240, w: 240, h: 18, type: 'air_radar' },
+        { x: 2950, y: 320, w: 280, h: 18, type: 'air_radar' },
+        { x: 3750, y: 270, w: 240, h: 18, type: 'air_radar' },
+        { x: 4500, y: 350, w: 260, h: 18, type: 'air_radar' },
+        { x: 5250, y: 250, w: 240, h: 18, type: 'air_radar' },
+        { x: 6050, y: 330, w: 280, h: 18, type: 'air_radar' },
+        { x: 6850, y: 260, w: 240, h: 18, type: 'air_radar' },
+        { x: 7650, y: 340, w: 260, h: 18, type: 'air_radar' },
+        { x: 8400, y: 250, w: 240, h: 18, type: 'air_radar' },
+        { x: 9500, y: 300, w: 400, h: 20, type: 'air_carrier' }
+      ];
+
+      this.watchtowers = [
+        { x: 1400, y: 340, w: 60, h: 360, type: 'antenna_tower' },
+        { x: 3000, y: 320, w: 70, h: 380, type: 'antenna_tower' },
+        { x: 4560, y: 350, w: 60, h: 340, type: 'antenna_tower' },
+        { x: 6100, y: 330, w: 70, h: 360, type: 'antenna_tower' },
+        { x: 7700, y: 340, w: 60, h: 350, type: 'antenna_tower' }
+      ];
 /**
  * GUERRA EN EL BOSQUE - SISTEMA DE MUNDO Y ESCENARIOS SELVÁTICOS (5 BIOMAS)
  * Biomas:
@@ -11,7 +34,8 @@
 class JungleWorld {
   constructor(biome = 'emerald') {
     this.biome = biome;
-    this.width = 4600;
+    // El nivel 4 (combate aéreo) es mucho más largo que el resto
+    this.width = biome === 'storm' ? 10400 : (biome === 'temple' ? 8200 : 4600);
     this.height = 720;
     this.tileSize = 32;
 
@@ -81,29 +105,119 @@ class JungleWorld {
   }
 
   initPlatforms() {
-    // Plataformas sólidas adaptadas al bioma
-    this.platforms = [
-      { x: 420, y: 520, w: 180, h: 22 },
-      { x: 740, y: 460, w: 160, h: 22 },
-      { x: 980, y: 390, w: 200, h: 22 },
-      { x: 1250, y: 480, w: 180, h: 22 },
-      { x: 1750, y: 450, w: 220, h: 22 },
-      { x: 2100, y: 380, w: 190, h: 22 },
-      { x: 2500, y: 470, w: 240, h: 22 },
-      { x: 2900, y: 410, w: 180, h: 22 },
-      { x: 3300, y: 490, w: 210, h: 22 },
-      { x: 3550, y: 420, w: 220, h: 22 },
-      // Plataformas adicionales elevadas en la zona de combate final
-      { x: 3820, y: 360, w: 170, h: 22 },
-      { x: 4050, y: 440, w: 190, h: 22 }
-    ];
+    this.platforms = [];
+    this.watchtowers = [];
 
-    // Torres o pilares según bioma
-    this.watchtowers = [
-      { x: 760, y: 460, w: 100, h: 180 },
-      { x: 2120, y: 380, w: 110, h: 260 },
-      { x: 3320, y: 490, w: 120, h: 150 }
-    ];
+    if (this.biome === 'emerald') {
+      // NIVEL 1: SELVA ESMERALDA - Pasarelas de madera en árboles y torres de vigía rústicas
+      this.platforms = [
+        { x: 380, y: 530, w: 180, h: 20, type: 'wood' },
+        { x: 680, y: 460, w: 170, h: 20, type: 'wood' },
+        { x: 950, y: 390, w: 220, h: 20, type: 'wood' },
+        { x: 1280, y: 480, w: 190, h: 20, type: 'wood' },
+        { x: 1720, y: 440, w: 230, h: 20, type: 'wood' },
+        { x: 2050, y: 370, w: 180, h: 20, type: 'wood' },
+        { x: 2480, y: 470, w: 240, h: 20, type: 'wood' },
+        { x: 2880, y: 400, w: 200, h: 20, type: 'wood' },
+        { x: 3250, y: 480, w: 210, h: 20, type: 'wood' },
+        { x: 3580, y: 410, w: 220, h: 20, type: 'wood' }
+      ];
+
+      this.watchtowers = [
+        { x: 720, y: 460, w: 90, h: 180, type: 'wood_tower' },
+        { x: 2080, y: 370, w: 100, h: 270, type: 'wood_tower' },
+        { x: 3280, y: 480, w: 110, h: 160, type: 'wood_tower' }
+      ];
+    } else if (this.biome === 'swamp') {
+      // NIVEL 2: PANTANO TÓXICO - Tuberías industriales de refinería, pontones flotantes y pasarelas de rejilla
+      this.platforms = [
+        { x: 320, y: 520, w: 220, h: 24, type: 'pipe' },
+        { x: 620, y: 450, w: 250, h: 20, type: 'metal_grate' },
+        { x: 920, y: 380, w: 190, h: 24, type: 'pipe' },
+        { x: 1180, y: 470, w: 240, h: 20, type: 'pontoon' },
+        { x: 1540, y: 420, w: 280, h: 24, type: 'pipe' },
+        { x: 1950, y: 360, w: 200, h: 20, type: 'metal_grate' },
+        { x: 2300, y: 460, w: 260, h: 20, type: 'pontoon' },
+        { x: 2750, y: 390, w: 230, h: 24, type: 'pipe' },
+        { x: 3150, y: 470, w: 250, h: 20, type: 'metal_grate' },
+        { x: 3520, y: 400, w: 220, h: 24, type: 'pipe' }
+      ];
+
+      this.watchtowers = [
+        { x: 650, y: 450, w: 90, h: 200, type: 'refinery_stack' },
+        { x: 1980, y: 360, w: 100, h: 280, type: 'refinery_stack' },
+        { x: 3180, y: 470, w: 110, h: 180, type: 'refinery_stack' }
+      ];
+    } else if (this.biome === 'volcanic') {
+      // NIVEL 3: SELVA VOLCÁNICA - Columnas de basalto escalonadas, costras de magma y andamios térmicos
+      this.platforms = [
+        { x: 340, y: 540, w: 170, h: 26, type: 'basalt' },
+        { x: 580, y: 470, w: 210, h: 26, type: 'basalt' },
+        { x: 860, y: 400, w: 240, h: 20, type: 'steel_heat' },
+        { x: 1220, y: 460, w: 200, h: 26, type: 'basalt' },
+        { x: 1560, y: 380, w: 220, h: 20, type: 'steel_heat' },
+        { x: 1920, y: 450, w: 240, h: 26, type: 'basalt' },
+        { x: 2280, y: 370, w: 200, h: 20, type: 'steel_heat' },
+        { x: 2650, y: 440, w: 230, h: 26, type: 'basalt' },
+        { x: 3050, y: 380, w: 250, h: 20, type: 'steel_heat' },
+        { x: 3480, y: 430, w: 210, h: 26, type: 'basalt' }
+      ];
+
+      this.watchtowers = [
+        { x: 890, y: 400, w: 85, h: 240, type: 'geothermal_vent' },
+        { x: 1950, y: 450, w: 95, h: 210, type: 'geothermal_vent' },
+        { x: 3080, y: 380, w: 105, h: 260, type: 'geothermal_vent' }
+      ];
+    } else if (this.biome === 'storm') {
+      // NIVEL 4: COMBATE AÉREO EN HELICÓPTERO - Espacio aéreo abierto, plataformas de radar y boyas flotantes
+      this.platforms = [
+        { x: 600, y: 260, w: 220, h: 18, type: 'air_radar' },
+        { x: 1350, y: 340, w: 260, h: 18, type: 'air_radar' },
+        { x: 2150, y: 240, w: 240, h: 18, type: 'air_radar' },
+        { x: 2950, y: 320, w: 280, h: 18, type: 'air_radar' },
+        { x: 3650, y: 280, w: 300, h: 20, type: 'air_carrier' }
+      ];
+
+      this.watchtowers = [
+        { x: 1400, y: 340, w: 60, h: 360, type: 'antenna_tower' },
+        { x: 3000, y: 320, w: 70, h: 380, type: 'antenna_tower' }
+      ];
+    } else if (this.biome === 'temple') {
+      // NIVEL 5: TEMPLO ANCESTRAL - Terrazas megalíticas escalonadas, losas rúnicas gigantes y pebeteros místicos
+      this.platforms = [
+        { x: 360, y: 510, w: 200, h: 28, type: 'rune_slab' },
+        { x: 680, y: 430, w: 220, h: 28, type: 'rune_slab' },
+        { x: 990, y: 350, w: 260, h: 30, type: 'temple_altar' },
+        { x: 1380, y: 440, w: 210, h: 28, type: 'rune_slab' },
+        { x: 1750, y: 360, w: 250, h: 30, type: 'temple_altar' },
+        { x: 2120, y: 460, w: 220, h: 28, type: 'rune_slab' },
+        { x: 2500, y: 380, w: 270, h: 30, type: 'temple_altar' },
+        { x: 2920, y: 450, w: 230, h: 28, type: 'rune_slab' },
+        { x: 3320, y: 370, w: 240, h: 30, type: 'rune_slab' },
+        // Sección extendida del templo
+        { x: 3700, y: 450, w: 220, h: 28, type: 'rune_slab' },
+        { x: 4050, y: 380, w: 250, h: 30, type: 'temple_altar' },
+        { x: 4450, y: 460, w: 220, h: 28, type: 'rune_slab' },
+        { x: 4850, y: 390, w: 260, h: 30, type: 'temple_altar' },
+        { x: 5250, y: 470, w: 220, h: 28, type: 'rune_slab' },
+        { x: 5650, y: 380, w: 270, h: 30, type: 'temple_altar' },
+        { x: 6050, y: 460, w: 230, h: 28, type: 'rune_slab' },
+        { x: 6450, y: 390, w: 250, h: 30, type: 'temple_altar' },
+        { x: 6850, y: 470, w: 220, h: 28, type: 'rune_slab' },
+        // Plataformas de acrobacia en la arena del jefe final
+        { x: 7250, y: 460, w: 210, h: 26, type: 'rune_slab' },
+        { x: 7550, y: 370, w: 240, h: 28, type: 'temple_altar' },
+        { x: 7850, y: 450, w: 210, h: 26, type: 'rune_slab' }
+      ];
+
+      this.watchtowers = [
+        { x: 1020, y: 350, w: 110, h: 290, type: 'monolith_column' },
+        { x: 2540, y: 380, w: 120, h: 260, type: 'monolith_column' },
+        { x: 4080, y: 380, w: 120, h: 260, type: 'monolith_column' },
+        { x: 5680, y: 380, w: 120, h: 260, type: 'monolith_column' },
+        { x: 7600, y: 370, w: 130, h: 270, type: 'monolith_column' }
+      ];
+    }
   }
 
   initFeatures() {
@@ -114,7 +228,14 @@ class JungleWorld {
       { x: 1100, y: 90, speed: 15, size: 110 },
       { x: 1800, y: 120, speed: 10, size: 85 },
       { x: 2600, y: 70, speed: 14, size: 120 },
-      { x: 3400, y: 110, speed: 9, size: 95 }
+      { x: 3400, y: 110, speed: 9, size: 95 },
+      { x: 4300, y: 90, speed: 11, size: 100 },
+      { x: 5200, y: 125, speed: 13, size: 105 },
+      { x: 6100, y: 75, speed: 9, size: 115 },
+      { x: 7000, y: 115, speed: 12, size: 90 },
+      { x: 7900, y: 85, speed: 10, size: 110 },
+      { x: 8800, y: 120, speed: 14, size: 100 },
+      { x: 9700, y: 80, speed: 8, size: 120 }
     ];
 
     // Árboles gigantes de fondo
@@ -202,31 +323,59 @@ class JungleWorld {
 
   // Altura del suelo dinámico según bioma
   getGroundHeight(x) {
-    const baseGround = 640;
-
-    // Foso 1 en x = 590..710
-    if (x > 590 && x < 710) {
-      return baseGround + 60;
+    if (this.biome === 'emerald') {
+      const baseGround = 640;
+      // Foso de río en x = 600..720
+      if (x > 600 && x < 720) return baseGround + 60;
+      // Colina suave en x = 1100..1600 (estación del tanque)
+      if (x >= 1100 && x <= 1600) {
+        const rel = (x - 1100) / 500;
+        return baseGround - Math.sin(rel * Math.PI) * 28;
+      }
+      // Quebrada en x = 2350..2480
+      if (x > 2350 && x < 2480) return baseGround + 60;
+      // Búnker en x >= 3700
+      if (x >= 3700) return baseGround - 10;
+      return baseGround + Math.sin(x * 0.005) * 6;
+    } else if (this.biome === 'swamp') {
+      const baseGround = 645;
+      // Pozas de ciénaga ácida profunda
+      if ((x > 750 && x < 1000) || (x > 2150 && x < 2420)) {
+        return baseGround + 65;
+      }
+      // Dique elevado de refinería industrial
+      if (x >= 1350 && x <= 1800) {
+        const rel = (x - 1350) / 450;
+        return baseGround - Math.sin(rel * Math.PI) * 35;
+      }
+      if (x >= 3700) return baseGround - 12;
+      return baseGround + Math.sin(x * 0.008) * 8;
+    } else if (this.biome === 'volcanic') {
+      const baseGround = 640;
+      // Sismas de lava fundida hirviente
+      if ((x > 540 && x < 780) || (x > 1550 && x < 1850) || (x > 2600 && x < 2900)) {
+        return baseGround + 70;
+      }
+      // Colina de basalto y roca volcánica
+      if (x >= 950 && x <= 1450) {
+        const rel = (x - 950) / 500;
+        return baseGround - Math.sin(rel * Math.PI) * 40;
+      }
+      if (x >= 3700) return baseGround - 15;
+      return baseGround + Math.sin(x * 0.006) * 10;
+    } else if (this.biome === 'storm') {
+      // Nivel 4: Combate aéreo en helicóptero, suelo bajo para espacio de vuelo
+      return 685;
+    } else if (this.biome === 'temple') {
+      // Terrazas megalíticas escalonadas del templo ancestral
+      if (x < 1150) return 640;
+      if (x < 2150) return 605; // Primer nivel ceremonial
+      if (x < 3150) return 575; // Segundo nivel del templo
+      if (x < 4700) return 545; // Salas profundas
+      if (x < 5700) return 575; // Descenso a la cripta
+      return 545; // Santuario interior y arena del combate final
     }
-
-    // Colina suave en x = 1100..1600 (estación del tanque)
-    if (x >= 1100 && x <= 1600) {
-      const rel = (x - 1100) / 500;
-      return baseGround - Math.sin(rel * Math.PI) * 25;
-    }
-
-    // Foso 2 en x = 2350..2480
-    if (x > 2350 && x < 2480) {
-      return baseGround + 60;
-    }
-
-    // Zona pavimentada / terraza del jefe final en x = 3700..4500
-    if (x >= 3700) {
-      return baseGround - 10;
-    }
-
-    // Ondulaciones naturales del terreno
-    return baseGround + Math.sin(x * 0.005) * 6;
+    return 640;
   }
 
   // Comprobar colisión sólida para proyectiles y caídas
@@ -434,24 +583,73 @@ class JungleWorld {
     const cols = this.getBiomeColors();
     ctx.save();
 
-    // 1. Estructuras de apoyo / Torres / Pilares
+    // 1. Estructuras de apoyo / Torres / Pilares según tipo
     for (const tw of this.watchtowers) {
       const rx = tw.x - camera.x;
       if (rx > -150 && rx < 1280 + 150) {
-        if (this.biome === 'temple') {
-          // Pilares de piedra ancestral tallada
-          ctx.fillStyle = '#4c3f58';
+        if (tw.type === 'monolith_column') {
+          // Pilares y obeliscos de piedra ancestral tallada
+          ctx.fillStyle = '#3f324c';
           ctx.fillRect(rx + 10, tw.y, tw.w - 20, tw.h);
           ctx.strokeStyle = '#6d5a80';
           ctx.lineWidth = 3;
           ctx.strokeRect(rx + 10, tw.y, tw.w - 20, tw.h);
           // Glifos arcanos brillantes
-          ctx.fillStyle = '#c084fc';
-          ctx.fillRect(rx + 25, tw.y + 40, tw.w - 50, 8);
-          ctx.fillRect(rx + 25, tw.y + 80, tw.w - 50, 8);
+          ctx.fillStyle = '#d8b4fe';
+          ctx.fillRect(rx + 25, tw.y + 40, tw.w - 50, 6);
+          ctx.fillRect(rx + 25, tw.y + 90, tw.w - 50, 6);
+          ctx.fillRect(rx + 25, tw.y + 140, tw.w - 50, 6);
+          // Pequeño pebetero místico en la cima
+          ctx.fillStyle = '#a855f7';
+          ctx.beginPath();
+          ctx.arc(rx + tw.w / 2, tw.y - 8, 12, 0, Math.PI * 2);
+          ctx.fill();
+        } else if (tw.type === 'refinery_stack') {
+          // Torres de destilación y chimeneas de la refinería química
+          ctx.fillStyle = '#263238';
+          ctx.fillRect(rx + 15, tw.y, tw.w - 30, tw.h);
+          ctx.strokeStyle = '#ffd600';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(rx + 15, tw.y, tw.w - 30, tw.h);
+          // Rayas de advertencia industrial amarillo/negro
+          ctx.fillStyle = '#ffd600';
+          for (let sy = tw.y + 20; sy < tw.y + tw.h; sy += 35) {
+            ctx.fillRect(rx + 15, sy, tw.w - 30, 8);
+          }
+          // Luz de baliza roja intermitente en la cima
+          ctx.fillStyle = '#ff1744';
+          ctx.beginPath();
+          ctx.arc(rx + tw.w / 2, tw.y - 6, 6, 0, Math.PI * 2);
+          ctx.fill();
+        } else if (tw.type === 'geothermal_vent') {
+          // Chimenea geotérmica volcánica
+          ctx.fillStyle = '#211818';
+          ctx.fillRect(rx + 15, tw.y, tw.w - 30, tw.h);
+          ctx.strokeStyle = '#ff5722';
+          ctx.lineWidth = 2.5;
+          ctx.strokeRect(rx + 15, tw.y, tw.w - 30, tw.h);
+          // Vetas de calor incandescente
+          ctx.fillStyle = '#ff3d00';
+          ctx.fillRect(rx + 22, tw.y + 30, tw.w - 44, 4);
+          ctx.fillRect(rx + 22, tw.y + 80, tw.w - 44, 4);
+        } else if (tw.type === 'antenna_tower') {
+          // Torre de antena de radar
+          ctx.strokeStyle = '#38bdf8';
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.moveTo(rx + tw.w / 2, tw.y);
+          ctx.lineTo(rx + 10, tw.y + tw.h);
+          ctx.moveTo(rx + tw.w / 2, tw.y);
+          ctx.lineTo(rx + tw.w - 10, tw.y + tw.h);
+          ctx.stroke();
+          // Luz de radar
+          ctx.fillStyle = '#38bdf8';
+          ctx.beginPath();
+          ctx.arc(rx + tw.w / 2, tw.y, 8, 0, Math.PI * 2);
+          ctx.fill();
         } else {
-          // Pilares de madera o metal militar
-          ctx.strokeStyle = cols.treeTrunk;
+          // Torre de vigía rústica de madera en la selva
+          ctx.strokeStyle = '#3e2723';
           ctx.lineWidth = 6;
           ctx.beginPath();
           ctx.moveTo(rx + 15, tw.y + tw.h);
@@ -464,41 +662,86 @@ class JungleWorld {
           ctx.lineTo(rx + 20, tw.y + 120);
           ctx.stroke();
 
+          // Techo de hojas de camuflaje
           ctx.fillStyle = cols.treeLeaf;
           ctx.beginPath();
-          ctx.moveTo(rx, tw.y - 10);
-          ctx.lineTo(rx + tw.w / 2, tw.y - 35);
-          ctx.lineTo(rx + tw.w, tw.y - 10);
+          ctx.moveTo(rx, tw.y - 8);
+          ctx.lineTo(rx + tw.w / 2, tw.y - 32);
+          ctx.lineTo(rx + tw.w, tw.y - 8);
           ctx.closePath();
           ctx.fill();
         }
       }
     }
 
-    // 2. Plataformas
+    // 2. Plataformas únicas por bioma
     for (const p of this.platforms) {
       const rx = p.x - camera.x;
       if (rx > -p.w && rx < 1280 + p.w) {
-        if (this.biome === 'temple') {
-          // Laja de piedra rúnica
-          ctx.fillStyle = '#3a2d48';
+        if (p.type === 'rune_slab' || p.type === 'temple_altar') {
+          // Laja de piedra rúnica del templo ancestral
+          ctx.fillStyle = p.type === 'temple_altar' ? '#4a3359' : '#33233f';
           ctx.fillRect(rx, p.y, p.w, p.h);
-          ctx.strokeStyle = '#7c3aed';
-          ctx.lineWidth = 2;
+          ctx.strokeStyle = '#a855f7';
+          ctx.lineWidth = 2.5;
           ctx.strokeRect(rx, p.y, p.w, p.h);
-          ctx.fillStyle = '#c084fc';
+          // Glifos grabados en oro y violeta
+          ctx.fillStyle = p.type === 'temple_altar' ? '#ffd700' : '#c084fc';
+          ctx.fillRect(rx + 10, p.y + 6, p.w - 20, 3);
           ctx.fillRect(rx, p.y - 3, p.w, 4);
-        } else if (this.biome === 'volcanic') {
-          // Roca de basalto oscuro con vetas ardientes
-          ctx.fillStyle = '#211818';
+        } else if (p.type === 'pipe') {
+          // Tubería química gigante con válvulas y remaches
+          ctx.fillStyle = '#263238';
+          ctx.beginPath();
+          ctx.roundRect(rx, p.y, p.w, p.h, 10);
+          ctx.fill();
+          ctx.strokeStyle = '#64748b';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+          // Franja tóxica amarilla/verde
+          ctx.fillStyle = '#a3e635';
+          ctx.fillRect(rx + 15, p.y + 4, p.w - 30, 4);
+        } else if (p.type === 'metal_grate' || p.type === 'pontoon') {
+          // Rejilla metálica de refinería o pontón flotante
+          ctx.fillStyle = p.type === 'pontoon' ? '#3e3529' : '#1e293b';
           ctx.fillRect(rx, p.y, p.w, p.h);
-          ctx.strokeStyle = '#ff3d00';
+          ctx.strokeStyle = '#475569';
           ctx.lineWidth = 2;
           ctx.strokeRect(rx, p.y, p.w, p.h);
-          ctx.fillStyle = '#ff6d00';
+          // Superficie antideslizante
+          ctx.fillStyle = '#65a30d';
+          ctx.fillRect(rx, p.y - 2, p.w, 3);
+        } else if (p.type === 'basalt') {
+          // Roca basáltica oscura con grietas de magma
+          ctx.fillStyle = '#1c1917';
+          ctx.fillRect(rx, p.y, p.w, p.h);
+          ctx.strokeStyle = '#ea580c';
+          ctx.lineWidth = 2.5;
+          ctx.strokeRect(rx, p.y, p.w, p.h);
+          // Veta ardiente
+          ctx.fillStyle = '#f97316';
+          ctx.fillRect(rx, p.y - 3, p.w, 4);
+        } else if (p.type === 'steel_heat') {
+          // Acero termorresistente de fundición
+          ctx.fillStyle = '#292524';
+          ctx.fillRect(rx, p.y, p.w, p.h);
+          ctx.strokeStyle = '#fb923c';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(rx, p.y, p.w, p.h);
+          ctx.fillStyle = '#ffedd5';
+          ctx.fillRect(rx + 8, p.y + p.h / 2 - 2, p.w - 16, 4);
+        } else if (p.type === 'air_radar' || p.type === 'air_carrier') {
+          // Boyas y plataformas aeronavales en el cielo
+          ctx.fillStyle = '#0f172a';
+          ctx.fillRect(rx, p.y, p.w, p.h);
+          ctx.strokeStyle = '#38bdf8';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(rx, p.y, p.w, p.h);
+          // Baliza azul
+          ctx.fillStyle = '#38bdf8';
           ctx.fillRect(rx, p.y - 3, p.w, 4);
         } else {
-          // Tablones de madera selváticos
+          // Tablones de madera selváticos clásicos
           ctx.fillStyle = cols.bridge;
           ctx.fillRect(rx, p.y, p.w, p.h);
           ctx.strokeStyle = '#221a14';
@@ -539,34 +782,71 @@ class JungleWorld {
     }
     ctx.stroke();
 
-    // Puentes sobre fosos
-    const b1x = 590 - camera.x;
-    if (b1x > -150 && b1x < 1280) {
-      ctx.fillStyle = cols.bridge;
-      ctx.fillRect(b1x, 638, 120, 10);
-      ctx.strokeStyle = '#1a140e';
-      ctx.strokeRect(b1x, 638, 120, 10);
+    // Zonas de peligro especiales según el bioma:
+    // Pantano Tóxico: Ácido verde burbujeante en las simas
+    if (this.biome === 'swamp') {
+      const p1x = 750 - camera.x;
+      if (p1x > -260 && p1x < 1280) {
+        ctx.fillStyle = 'rgba(74, 222, 128, 0.7)';
+        ctx.fillRect(p1x, 690, 250, 30);
+      }
+      const p2x = 2150 - camera.x;
+      if (p2x > -280 && p2x < 1280) {
+        ctx.fillStyle = 'rgba(74, 222, 128, 0.7)';
+        ctx.fillRect(p2x, 690, 270, 30);
+      }
     }
 
-    const b2x = 2350 - camera.x;
-    if (b2x > -150 && b2x < 1280) {
-      ctx.fillStyle = cols.bridge;
-      ctx.fillRect(b2x, 638, 130, 10);
-      ctx.strokeStyle = '#1a140e';
-      ctx.strokeRect(b2x, 638, 130, 10);
+    // Selva Volcánica: Magma ardiente resplandeciente en las fallas
+    if (this.biome === 'volcanic') {
+      const v1x = 540 - camera.x;
+      if (v1x > -250 && v1x < 1280) {
+        ctx.fillStyle = '#ff4500';
+        ctx.fillRect(v1x, 695, 240, 25);
+      }
+      const v2x = 1550 - camera.x;
+      if (v2x > -310 && v2x < 1280) {
+        ctx.fillStyle = '#ff4500';
+        ctx.fillRect(v2x, 695, 300, 25);
+      }
+      const v3x = 2600 - camera.x;
+      if (v3x > -310 && v3x < 1280) {
+        ctx.fillStyle = '#ff4500';
+        ctx.fillRect(v3x, 695, 300, 25);
+      }
     }
 
-    // Zona pavimentada / explanada del jefe (a partir de x = 3700)
-    const baseConcreteX = 3700 - camera.x;
+    // Puentes sobre fosos para Nivel 1 (Selva Esmeralda)
+    if (this.biome === 'emerald') {
+      const b1x = 600 - camera.x;
+      if (b1x > -150 && b1x < 1280) {
+        ctx.fillStyle = cols.bridge;
+        ctx.fillRect(b1x, 638, 120, 10);
+        ctx.strokeStyle = '#1a140e';
+        ctx.strokeRect(b1x, 638, 120, 10);
+      }
+
+      const b2x = 2350 - camera.x;
+      if (b2x > -150 && b2x < 1280) {
+        ctx.fillStyle = cols.bridge;
+        ctx.fillRect(b2x, 638, 130, 10);
+        ctx.strokeStyle = '#1a140e';
+        ctx.strokeRect(b2x, 638, 130, 10);
+      }
+    }
+
+    // Zona de combate / explanada del jefe (a partir de x = 3700)
+    const arenaStartX = this.biome === 'storm' ? this.width - 900 : (this.biome === 'temple' ? 7300 : 3700);
+    const baseConcreteX = arenaStartX - camera.x;
     if (baseConcreteX < 1280) {
-      const w = 4600 - 3700;
+      const w = this.width - arenaStartX;
       ctx.fillStyle = cols.baseFloor;
-      ctx.fillRect(baseConcreteX, 630, w, 90);
+      ctx.fillRect(baseConcreteX, 620, w, 100);
 
       // Franjas de balizamiento táctico o runas del templo
       ctx.fillStyle = cols.baseTrim;
       for (let rx = baseConcreteX; rx < baseConcreteX + w; rx += 50) {
-        ctx.fillRect(rx, 630, 16, 6);
+        ctx.fillRect(rx, 620, 16, 6);
       }
     }
 

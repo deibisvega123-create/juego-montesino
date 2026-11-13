@@ -1,3 +1,4 @@
+/* ===== audio.js ===== */
 /**
  * GUERRA EN EL BOSQUE - MOTOR DE AUDIO SINTETIZADO (Web Audio API)
  * Genera efectos de sonido y banda sonora arcade retro proceduralmente
@@ -327,6 +328,130 @@ class SoundEngine {
     gain.connect(this.sfxGain);
     osc.start(t);
     osc.stop(t + 0.13);
+  }
+
+  // SFX: Doble Salto Táctico (tono más agudo y propulsión aérea)
+  playDoubleJump() {
+    this.ensureContext();
+    if (!this.ctx || this.isMuted) return;
+    const t = this.ctx.currentTime;
+
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(320, t);
+    osc.frequency.exponentialRampToValueAtTime(680, t + 0.16);
+
+    gain.gain.setValueAtTime(0.38, t);
+    gain.gain.exponentialRampToValueAtTime(0.01, t + 0.16);
+
+    osc.connect(gain);
+    gain.connect(this.sfxGain);
+    osc.start(t);
+    osc.stop(t + 0.17);
+  }
+
+  // SFX: Cuchillo Táctico - Corte en el aire (Swish rápido y afilado)
+  playKnifeSlash() {
+    this.ensureContext();
+    if (!this.ctx || this.isMuted) return;
+    const t = this.ctx.currentTime;
+
+    // Ruido blanco filtrado para el silbido del acero
+    const noise = this.ctx.createBufferSource();
+    noise.buffer = this.createNoiseBuffer(0.12);
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(2400, t);
+    filter.frequency.exponentialRampToValueAtTime(800, t + 0.12);
+    filter.Q.value = 3.0;
+
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0.55, t);
+    gain.gain.exponentialRampToValueAtTime(0.01, t + 0.12);
+
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.sfxGain);
+    noise.start(t);
+    noise.stop(t + 0.13);
+
+    // Oscilador suplementario metálico
+    const metal = this.ctx.createOscillator();
+    const metalGain = this.ctx.createGain();
+    metal.type = 'triangle';
+    metal.frequency.setValueAtTime(880, t);
+    metal.frequency.exponentialRampToValueAtTime(340, t + 0.09);
+    metalGain.gain.setValueAtTime(0.25, t);
+    metalGain.gain.exponentialRampToValueAtTime(0.01, t + 0.09);
+
+    metal.connect(metalGain);
+    metalGain.connect(this.sfxGain);
+    metal.start(t);
+    metal.stop(t + 0.1);
+  }
+
+  // SFX: Cuchillo Impacto Letal (Cuchillada certera)
+  playKnifeHit() {
+    this.ensureContext();
+    if (!this.ctx || this.isMuted) return;
+    const t = this.ctx.currentTime;
+
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(320, t);
+    osc.frequency.exponentialRampToValueAtTime(80, t + 0.15);
+
+    gain.gain.setValueAtTime(0.7, t);
+    gain.gain.exponentialRampToValueAtTime(0.01, t + 0.15);
+
+    osc.connect(gain);
+    gain.connect(this.sfxGain);
+    osc.start(t);
+    osc.stop(t + 0.16);
+  }
+
+  // SFX: Alerta de Sobrecalentamiento de Metralleta (Buzzer)
+  playOverheatAlert() {
+    this.ensureContext();
+    if (!this.ctx || this.isMuted) return;
+    const t = this.ctx.currentTime;
+
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(380, t);
+    osc.frequency.setValueAtTime(280, t + 0.08);
+
+    gain.gain.setValueAtTime(0.4, t);
+    gain.gain.exponentialRampToValueAtTime(0.01, t + 0.22);
+
+    osc.connect(gain);
+    gain.connect(this.sfxGain);
+    osc.start(t);
+    osc.stop(t + 0.23);
+  }
+
+  // SFX: Enfriamiento Completo / Listo para disparar
+  playOverheatCooldown() {
+    this.ensureContext();
+    if (!this.ctx || this.isMuted) return;
+    const t = this.ctx.currentTime;
+
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(440, t);
+    osc.frequency.exponentialRampToValueAtTime(880, t + 0.15);
+
+    gain.gain.setValueAtTime(0.28, t);
+    gain.gain.exponentialRampToValueAtTime(0.01, t + 0.15);
+
+    osc.connect(gain);
+    gain.connect(this.sfxGain);
+    osc.start(t);
+    osc.stop(t + 0.16);
   }
 
   // SFX: Jugador Recibe Daño

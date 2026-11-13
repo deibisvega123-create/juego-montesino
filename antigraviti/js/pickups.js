@@ -1,3 +1,4 @@
+/* ===== pickups.js ===== */
 /**
  * GUERRA EN EL BOSQUE - SISTEMA DE OBJETOS RECOGIBLES Y CAJAS DE SUMINISTROS
  * Cajas de armas especiales (S, M, L, R, F), monedas arrojadas por enemigos
@@ -241,7 +242,7 @@ class Medkit {
 
     if (player && !player.dead) {
       if (Math.hypot(player.x - this.x, player.y - this.y) < 28) {
-        const canHealPlayer = player.hp < player.maxHp || player.lives < 3;
+        const canHealPlayer = player.hp < player.maxHp;
         const canHealTank = player.inVehicle && player.tank && player.tank.armor < player.tank.maxArmor;
         if (canHealPlayer || canHealTank) {
           this.collect(player);

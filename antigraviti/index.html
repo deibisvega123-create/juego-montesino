@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Black+Ops+One&family=Orbitron:wght@500;700;900&family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
   <div id="game-container">
@@ -20,14 +20,9 @@
 
     <!-- HUD Overlay -->
     <div id="hud-overlay" class="hud-overlay hidden">
-      <!-- Top Left: Lives & Health -->
+      <!-- Top Left: Health -->
       <div class="hud-panel hud-left">
         <div class="hud-title">SOLDADO COMANDO</div>
-        <div class="lives-container" id="lives-container">
-          <span class="life-icon" id="life-1">🪖</span>
-          <span class="life-icon" id="life-2">🪖</span>
-          <span class="life-icon" id="life-3">🪖</span>
-        </div>
         <div class="player-hp-container">
           <div class="player-hp-bar-bg">
             <div id="player-hp-bar" class="player-hp-fill"></div>
@@ -77,9 +72,33 @@
           </div>
         </div>
         <div class="hud-actions">
-          <span class="difficulty-tag" id="hud-difficulty-tag">NORMAL</span>
           <button id="btn-pause" class="hud-btn" title="Pausa (ESC / P)">⏸️</button>
           <button id="btn-mute" class="hud-btn" title="Sonido">🔊</button>
+        </div>
+      </div>
+
+      <!-- Helicopter Combat HUD (Level 4) -->
+      <div id="helicopter-hud" class="helicopter-hud hidden">
+        <div class="heli-hud-badge">
+          <span class="heli-hud-icon">🚁</span>
+          <div class="heli-hud-details">
+            <div class="heli-hud-title">HELICÓPTERO TÁCTICO DE ASALTO</div>
+            <!-- Heat bar for Metralleta -->
+            <div class="heli-heat-row">
+              <span class="heli-heat-label" id="heli-heat-label">CALOR METRALLETA: 0%</span>
+              <div class="heli-heat-bar-bg">
+                <div id="heli-heat-fill" class="heli-heat-fill"></div>
+              </div>
+            </div>
+          </div>
+          <!-- Rocket counter -->
+          <div class="heli-rockets-badge">
+            <span class="heli-rocket-icon">🚀</span>
+            <div class="heli-rocket-info">
+              <span class="heli-rocket-count" id="heli-rocket-count">5 / 5</span>
+              <span class="heli-rocket-hint">[ESPACIO] o [CLIC DER] COHETE</span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -88,12 +107,12 @@
         <div class="vehicle-badge">
           <span class="vehicle-icon">🛡️</span>
           <div class="vehicle-details">
-            <div class="vehicle-title">TANQUE DE COMBATE ALIADO T-80</div>
+            <div class="vehicle-title">TANQUE T-80</div>
             <div class="vehicle-armor-bar-bg">
               <div id="vehicle-armor-fill" class="vehicle-armor-fill"></div>
             </div>
           </div>
-          <span class="vehicle-exit-hint">[E] SALIR DEL TANQUE</span>
+          <span class="vehicle-exit-hint">[E] SALIR</span>
         </div>
       </div>
 
@@ -124,25 +143,13 @@
             <span class="btn-text">SELECCIONAR NIVEL (1 - 5) 🗺️</span>
           </button>
           
-          <div class="difficulty-selector-panel">
-            <span class="selector-title">DIFICULTAD:</span>
-            <div class="difficulty-buttons">
-              <button class="btn-diff" data-diff="easy">FÁCIL</button>
-              <button class="btn-diff active" data-diff="normal">NORMAL</button>
-              <button class="btn-diff" data-diff="hard">DIFÍCIL</button>
-            </div>
-            <div id="diff-description" class="diff-description">
-              Equilibrio clásico arcade: daño estándar y suministros tácticos.
-            </div>
-          </div>
-
           <button id="btn-how-to-play" class="btn-arcade btn-secondary">
             <span class="btn-text">CÓMO JUGAR</span>
           </button>
         </div>
 
         <div class="menu-footer">
-          <span>CONTROLES: [A][D] MOVER | [W] SALTAR | [RATÓN] APUNTAR Y DISPARAR | [E] TANQUE</span>
+          <span>CONTROLES: [A][D] MOVER | [ESPACIO x2] DOBLE SALTO | [F] CUCHILLO | [RATÓN] DISPARAR | [E] TANQUE</span>
         </div>
       </div>
     </div>
@@ -163,26 +170,26 @@
           <div class="level-card" data-level="2">
             <div class="card-biome-tag swamp">BIOMA 2</div>
             <div class="card-title">2. PANTANO TÓXICO</div>
-            <div class="card-desc">Ciénaga con esporas corrosivas y la Refinería Química enemiga.</div>
+            <div class="card-desc">Ciénaga con esporas corrosivas, tuberías y la Refinería Química enemiga.</div>
             <div class="card-boss">JEFE: Generador Tóxico</div>
           </div>
           <div class="level-card" data-level="3">
             <div class="card-biome-tag volcanic">BIOMA 3</div>
             <div class="card-title">3. SELVA VOLCÁNICA</div>
-            <div class="card-desc">Ríos de lava, cenizas ardientes y el temible Cañón Geotérmico.</div>
+            <div class="card-desc">Ríos de lava, columnas de basalto y el temible Cañón Geotérmico.</div>
             <div class="card-boss">JEFE: Cañón de Magma</div>
           </div>
           <div class="level-card" data-level="4">
             <div class="card-biome-tag storm">BIOMA 4</div>
-            <div class="card-title">4. TORMENTA NOCTURNA</div>
-            <div class="card-desc">Sigilo bajo lluvia torrencial, relámpagos y el Complejo Radar.</div>
-            <div class="card-boss">JEFE: Radar y Guía de Misiles</div>
+            <div class="card-title">4. COMBATE AÉREO 🚁</div>
+            <div class="card-desc">¡Combate aéreo en helicóptero! Metralleta con calor, 5 cohetes y dogfight en el cielo.</div>
+            <div class="card-boss">JEFE: Helicóptero Gigante Titán-X</div>
           </div>
           <div class="level-card boss-card" data-level="5">
             <div class="card-biome-tag temple">¡BATALLA FINAL!</div>
             <div class="card-title">5. TEMPLO ANCESTRAL ⭐</div>
-            <div class="card-desc">Duelo a muerte en ruinas megalíticas contra el implacable Super Soldado.</div>
-            <div class="card-boss golden">JEFE FINAL: Coronel Vulcan</div>
+            <div class="card-desc">Duelo a muerte en ruinas sagradas contra el ágil Comandante Malvado de ojos rojos.</div>
+            <div class="card-boss golden">JEFE FINAL: Comandante Malvado</div>
           </div>
         </div>
         <button id="btn-close-level-select" class="btn-arcade btn-secondary">VOLVER AL MENÚ</button>
@@ -197,30 +204,32 @@
         <div class="instructions-grid">
           <div class="instruction-card">
             <div class="card-icon">🕹️</div>
-            <h3>MOVIMIENTO</h3>
-            <p><strong>[A] / [D]</strong> o <strong>[◀] / [▶]</strong>: Correr en la selva</p>
-            <p><strong>[W]</strong> / <strong>[ESPACIO]</strong>: Saltar plataformas</p>
-            <p><strong>[S]</strong> o <strong>[▼]</strong>: Agacharse / Bajar plataformas</p>
+            <h3>MOVIMIENTO Y SALTOS</h3>
+            <p><strong>[A] / [D]</strong>: Correr en la selva</p>
+            <p><strong>[W]</strong> o <strong>[ESPACIO]</strong>: Saltar plataformas</p>
+            <p><strong>[ESPACIO x2]</strong>: <strong>¡Doble Salto táctico en el aire!</strong></p>
+            <p><strong>[S]</strong>: Agacharse / Descender plataformas</p>
           </div>
           <div class="instruction-card">
             <div class="card-icon">🎯</div>
-            <h3>DISPARO Y DEFENSA</h3>
+            <h3>DISPARO Y CUCHILLO</h3>
             <p><strong>[RATÓN]</strong>: Apuntar en 360° | <strong>[CLIC]</strong> Disparar</p>
-            <p>¡Atento al aviso <strong>"!"</strong> o láser para <strong>agacharte [S] o saltar</strong>!</p>
-            <p>¡Puedes <strong>derribar misiles y bombas enemigas</strong> disparándoles en el aire!</p>
+            <p><strong>[F]</strong>: <strong>¡Cuchillada letal cuerpo a cuerpo!</strong> Aniquila enemigos cercanos al instante.</p>
+            <p>¡Puedes <strong>derribar misiles y bombas enemigas</strong> en el aire!</p>
           </div>
           <div class="instruction-card">
-            <div class="card-icon">🚜</div>
-            <h3>VEHÍCULOS Y TANQUE</h3>
-            <p>Presiona <strong>[E]</strong> para entrar/salir del <strong>Tanque Aliado</strong></p>
-            <p>El tanque absorbe impactos, aplasta infantería y dispara un cañón de 120mm</p>
+            <div class="card-icon">🚁</div>
+            <h3>COMBATE AÉREO (NIVEL 4)</h3>
+            <p>Pilotea el Helicóptero con <strong>[W][A][S][D]</strong> en vuelo libre</p>
+            <p><strong>Metralleta [CLIC]</strong>: Cuida la <strong>Barra de Calor</strong> para no sobrecalentar</p>
+            <p><strong>Cohetes [ESPACIO / CLIC DER]</strong>: máximo 5 cohetes guiados. ¡Recarga con las cajas aéreas!</p>
           </div>
           <div class="instruction-card">
             <div class="card-icon">🛡️</div>
             <h3>SALUD Y SUMINISTROS</h3>
-            <p>Dispones de <strong>3 Vidas</strong> con <strong>Blindaje Táctico (100 HP)</strong></p>
-            <p>Recoge <strong>Botiquines</strong> para restaurar blindaje y vidas perdidas</p>
-            <p>¡Llega a la <strong>Base Enemiga</strong> y destruye su núcleo para ganar!</p>
+            <p>Tienes una sola <strong>Barra de Salud (100 HP)</strong>: si se agota, ¡se acaba el juego!</p>
+            <p>Presiona <strong>[E]</strong> para subir/bajar del <strong>Tanque Aliado</strong></p>
+            <p>¡Llega al final de cada sector y aniquila al jefe supremo!</p>
           </div>
         </div>
         <button id="btn-close-instructions" class="btn-arcade btn-primary">ENTENDIDO, A COMBATIR</button>
@@ -235,15 +244,6 @@
         <div class="pause-options">
           <button id="btn-resume" class="btn-arcade btn-primary">REANUDAR COMBATE</button>
           
-          <div class="difficulty-selector-panel">
-            <span class="selector-title">CAMBIAR DIFICULTAD:</span>
-            <div class="difficulty-buttons">
-              <button class="btn-diff-pause" data-diff="easy">FÁCIL</button>
-              <button class="btn-diff-pause active" data-diff="normal">NORMAL</button>
-              <button class="btn-diff-pause" data-diff="hard">DIFÍCIL</button>
-            </div>
-          </div>
-
           <div class="audio-controls-row">
             <span>VOLUMEN GENERAL:</span>
             <input type="range" id="volume-slider" min="0" max="1" step="0.05" value="0.7">
@@ -326,10 +326,6 @@
           <div class="stat-row">
             <span>Enemigos Neutralizados:</span>
             <strong id="victory-kills">0</strong>
-          </div>
-          <div class="stat-row">
-            <span>Dificultad Superada:</span>
-            <strong id="victory-difficulty">NORMAL</strong>
           </div>
         </div>
 

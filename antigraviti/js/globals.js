@@ -1,3 +1,4 @@
+/* ===== globals.js ===== */
 /**
  * GUERRA EN EL BOSQUE - VARIABLES GLOBALES Y COLECCIONES COMPARTIDAS
  */

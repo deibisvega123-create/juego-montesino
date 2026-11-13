@@ -1,3 +1,4 @@
+/* ===== vehicles.js ===== */
 /**
  * GUERRA EN EL BOSQUE - SISTEMA DE VEHÍCULOS Y TANQUES
  * Tanque aliado maniobrable por el jugador y vehículos enemigos acorazados.

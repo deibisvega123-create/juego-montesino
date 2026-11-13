@@ -1,3 +1,4 @@
+/* ===== enemies.js ===== */
 /**
  * GUERRA EN EL BOSQUE - SISTEMA DE ENEMIGOS Y JEFE DE BASE
  * Soldados de infantería, francotiradores en torres, artilleros RPG, drones
@@ -127,7 +128,7 @@ class EnemySoldier {
     coins.push(new Coin(this.x, this.y - 10, coinVal));
     if (this.isSpecial) {
       coins.push(new Coin(this.x + 10, this.y - 12, coinVal));
-      if (Math.random() < 0.6) {
+      if (currentLevel !== 4 && Math.random() < 0.6) {
         crates.push(new WeaponCrate(this.x, this.y - 20));
       }
     }
@@ -216,6 +217,29 @@ class EnemySniper {
     this.isAiming = false;
     this.facing = -1;
     this.dead = false;
+    this.snapToSurface();
+  }
+
+  // Coloca al francotirador con los pies sobre la plataforma más cercana (o el suelo)
+  // para que nunca quede flotando en el aire.
+  snapToSurface() {
+    if (typeof world === 'undefined' || !world) return;
+    const feet = this.y + 16; // los pies se dibujan 16 px por debajo del centro
+    let best = null;
+    let bestD = Infinity;
+    for (const p of (world.platforms || [])) {
+      if (this.x >= p.x - 60 && this.x <= p.x + p.w + 60) {
+        const d = Math.abs(p.y - feet);
+        if (d < bestD) { bestD = d; best = p; }
+      }
+    }
+    const groundY = world.getGroundHeight(this.x);
+    if (best && bestD <= Math.abs(groundY - feet) + 60) {
+      this.x = Math.max(best.x + 18, Math.min(best.x + best.w - 18, this.x));
+      this.y = best.y - 16;
+    } else {
+      this.y = groundY - 16;
+    }
   }
 
   update(dt, player, world, cam) {
@@ -409,7 +433,8 @@ class CombatDrone {
     audio.playExplosion(1.0);
     particleSystem.createExplosion(this.x, this.y, 40, 30);
     coins.push(new Coin(this.x, this.y, 250));
-    if (Math.random() < 0.5) {
+    // En el nivel 4 (combate aéreo) los drones no sueltan cajas de armas
+    if (currentLevel !== 4 && Math.random() < 0.5) {
       crates.push(new WeaponCrate(this.x, this.y, null, false));
     }
   }
@@ -947,75 +972,98 @@ class MagmaFortressBoss {
 }
 
 // ============================================================================
-// JEFE NIVEL 4: COMPLEJO DE RADAR Y GUÍA DE MISILES (TORMENTA NOCTURNA)
 // ============================================================================
-class RadarComplexBoss {
-  constructor(x, y) {
+// ENEMIGOS AÉREOS NIVEL 4: HELICÓPTEROS ENEMIGOS Y SUMINISTROS
+// ============================================================================
+class EnemyHelicopter {
+  constructor(x, y, type = 'scout') {
     this.x = x;
     this.y = y;
-    this.width = 330;
-    this.height = 240;
-    this.hp = 1650;
-    this.maxHp = 1650;
-    this.name = 'COMPLEJO DE RADAR Y GUÍA DE MISILES';
-    this.destroyed = false;
-
-    this.laserTimer = 1.4;
-    this.missileTimer = 3.4;
-    this.dishAngle = 0;
+    this.type = type; // 'scout' o 'gunship'
+    this.width = type === 'gunship' ? 95 : 72;
+    this.height = type === 'gunship' ? 48 : 36;
+    this.hp = type === 'gunship' ? 95 : 45;
+    this.maxHp = this.hp;
+    this.speed = type === 'gunship' ? 1.6 : 2.4;
+    this.rotorAngle = 0;
+    this.dead = false;
+    this.fireTimer = 1.2 + Math.random() * 1.5;
+    this.facing = -1;
+    this.hoverTimer = Math.random() * Math.PI * 2;
+    this.baseY = y;
   }
 
-  update(dt, player) {
-    if (this.destroyed) return;
-    this.dishAngle += dt * 1.5;
+  update(dt, player, world, cam) {
+    if (this.dead) return false;
 
-    const tx = player.inVehicle && player.tank ? player.tank.x : player.x;
-    const ty = player.inVehicle && player.tank ? player.tank.y : player.y;
+    this.rotorAngle += dt * 38;
+    this.hoverTimer += dt * 2.5;
+    this.fireTimer -= dt;
 
-    // Disparo de rayos láser tácticos azules
-    this.laserTimer -= dt;
-    if (this.laserTimer <= 0) {
-      this.laserTimer = 2.1;
-      const angle = Math.atan2(ty - (this.y + 100), tx - (this.x + 30));
-      const spd = 9.0;
-      projectiles.push(new Projectile(this.x + 30, this.y + 100, Math.cos(angle) * spd, Math.sin(angle) * spd, WEAPON_TYPES.LASER, 'enemy', 20));
-      audio.playShootLaser();
+    const targetX = player.inVehicle && player.tank ? player.tank.x : player.x;
+    const targetY = player.inVehicle && player.tank ? player.tank.y : player.y;
+
+    // Movimiento oscilatorio de vuelo
+    this.y = this.baseY + Math.sin(this.hoverTimer) * 35;
+    this.facing = targetX < this.x ? -1 : 1;
+
+    // Acercarse suavemente al rango de ataque
+    const dist = Math.hypot(targetX - this.x, targetY - this.y);
+    if (dist > 320) {
+      this.x += this.facing * this.speed * dt * 60;
+    } else if (dist < 180) {
+      this.x -= this.facing * this.speed * dt * 60;
     }
 
-    // Andanada de misiles teledirigidos
-    this.missileTimer -= dt;
-    if (this.missileTimer <= 0) {
-      this.missileTimer = 3.6;
-      for (let i = 0; i < 2; i++) {
-        setTimeout(() => {
-          projectiles.push(new EnemyMissile(this.x + 120 + i * 80, this.y - 10, tx, ty));
-          audio.playShootRocket();
-        }, i * 220);
-      }
+    // Disparar ráfagas de ametralladora o cohetes
+    if (this.fireTimer <= 0 && dist < 650) {
+      this.shoot(targetX, targetY);
+      this.fireTimer = this.type === 'gunship' ? 2.2 : 1.6;
     }
+
+    return true;
   }
 
-  takeDamage(amount, hitX, hitY) {
-    if (this.destroyed) return;
-    this.hp -= amount;
-    particleSystem.createSparks(hitX || this.x + 130, hitY || this.y + 100, -1, 0, 9, '#00e5ff');
-    if (this.hp <= 0) this.destroyBase();
-  }
+  shoot(targetX, targetY) {
+    audio.playShootRifle();
+    const angle = Math.atan2(targetY - this.y, targetX - this.x);
+    const spd = 7.0;
 
-  destroyBase() {
-    this.destroyed = true;
-    this.hp = 0;
-    audio.playExplosion(2.7);
-    for (let i = 0; i < 24; i++) {
+    projectiles.push(new Projectile(
+      this.x + this.facing * 25, this.y + 10,
+      Math.cos(angle) * spd, Math.sin(angle) * spd,
+      WEAPON_TYPES.RIFLE,
+      'enemy',
+      16
+    ));
+    particleSystem.createMuzzleFlash(this.x + this.facing * 25, this.y + 10, angle);
+
+    // Los gunships disparan además un misil ocasional
+    if (this.type === 'gunship' && Math.random() < 0.45) {
       setTimeout(() => {
-        const rx = this.x + Math.random() * this.width;
-        const ry = this.y + Math.random() * this.height;
-        audio.playExplosion(1.4);
-        particleSystem.createExplosion(rx, ry, 75, 45);
-        particleSystem.createSparks(rx, ry, (Math.random() - 0.5) * 6, -Math.random() * 6, 12, '#00e5ff');
-      }, i * 130);
+        if (!this.dead) {
+          projectiles.push(new EnemyMissile(this.x, this.y + 15, targetX, targetY));
+          audio.playShootRocket();
+        }
+      }, 250);
     }
-    if (typeof window.onBaseDestroyed === 'function') window.onBaseDestroyed();
+  }
+
+  takeDamage(amount) {
+    this.hp -= amount;
+    particleSystem.createSparks(this.x, this.y, -this.facing * 2, -1, 6, '#ffaa00');
+    if (this.hp <= 0 && !this.dead) {
+      this.die();
+    }
+  }
+
+  die() {
+    this.dead = true;
+    audio.playExplosion(1.2);
+    particleSystem.createExplosion(this.x, this.y, 50, 30);
+    coins.push(new Coin(this.x, this.y, this.type === 'gunship' ? 300 : 150));
+
+    // Las naves enemigas NO sueltan cajas: los suministros solo caen del cielo en puntos fijos del nivel
   }
 
   draw(ctx, camera) {
@@ -1023,323 +1071,561 @@ class RadarComplexBoss {
     const ry = this.y - camera.y;
 
     ctx.save();
-    // Búnker naval de acero azul oscuro
-    ctx.fillStyle = this.destroyed ? '#0a1017' : '#142233';
-    ctx.fillRect(rx, ry, this.width, this.height);
-    ctx.strokeStyle = this.destroyed ? '#111e2b' : '#00b0ff';
-    ctx.lineWidth = 3;
-    ctx.strokeRect(rx, ry, this.width, this.height);
+    ctx.translate(rx, ry);
+    ctx.scale(this.facing, 1);
 
-    // Cúpula / Antena de radar parabólica rotatoria
-    ctx.save();
-    ctx.translate(rx + 165, ry - 15);
-    ctx.rotate(Math.sin(this.dishAngle) * 0.4);
-    ctx.fillStyle = '#263238';
+    // Fuselaje
+    ctx.fillStyle = this.type === 'gunship' ? '#37474f' : '#263238';
     ctx.beginPath();
-    ctx.arc(0, 0, 45, Math.PI, 0);
+    ctx.ellipse(0, 0, this.width / 2, this.height / 2, 0, 0, Math.PI * 2);
     ctx.fill();
-    ctx.strokeStyle = '#00e5ff';
-    ctx.lineWidth = 3;
+    ctx.strokeStyle = '#ff1744';
+    ctx.lineWidth = 1.5;
     ctx.stroke();
-    // Foco emisor
-    ctx.fillStyle = '#00e5ff';
-    ctx.fillRect(-4, -18, 8, 18);
-    ctx.restore();
 
-    // Cañón láser frontal
+    // Cola
+    ctx.fillStyle = '#1e293b';
+    ctx.beginPath();
+    ctx.moveTo(-this.width * 0.4, -4);
+    ctx.lineTo(-this.width * 0.85, -10);
+    ctx.lineTo(-this.width * 0.85, 2);
+    ctx.lineTo(-this.width * 0.4, 6);
+    ctx.closePath();
+    ctx.fill();
+
+    // Rotor de cola
     ctx.fillStyle = '#111';
-    ctx.fillRect(rx + 15, ry + 95, 35, 12);
+    ctx.fillRect(-this.width * 0.87, -18, 4, 16);
 
-    ctx.fillStyle = this.destroyed ? '#ff9800' : '#00e5ff';
-    ctx.font = '900 18px "Orbitron", sans-serif';
-    ctx.fillText(this.destroyed ? '❌ RADAR INHABILITADO' : '📡 RADAR TÁCTICO', rx + 75, ry + 35);
+    // Cabina roja enemiga
+    ctx.fillStyle = '#ff1744';
+    ctx.beginPath();
+    ctx.ellipse(this.width * 0.25, -2, this.width * 0.16, this.height * 0.22, 0.15, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Cañón frontal
+    ctx.fillStyle = '#111';
+    ctx.fillRect(this.width * 0.35, 6, 16, 5);
+
+    // Mástil y aspas del rotor
+    ctx.fillStyle = '#111';
+    ctx.fillRect(-3, -this.height * 0.6, 6, 8);
+    const span = Math.cos(this.rotorAngle) * (this.width * 0.7);
+    ctx.fillRect(-span, -this.height * 0.62, span * 2, 3);
+
+    // Barra de vida si está dañado
+    if (this.hp < this.maxHp) {
+      ctx.fillStyle = '#ff3344';
+      ctx.fillRect(-this.width / 2, -this.height * 0.75, (this.hp / this.maxHp) * this.width, 3);
+    }
+
     ctx.restore();
   }
 }
 
 // ============================================================================
-// JEFE FINAL NIVEL 5: CORONEL VULCAN (EL SUPER SOLDADO SUPREMO)
+// CAJA DE RECARGA DE COHETES EN PARACAÍDAS (NIVEL 4)
 // ============================================================================
-class SuperSoldierBoss {
+class HeliRocketCrate {
   constructor(x, y) {
     this.x = x;
     this.y = y;
-    this.width = 62;
-    this.height = 88;
-    this.hp = 1800;
-    this.maxHp = 1800;
-    this.name = 'CORONEL VULCAN: EL SUPER SOLDADO SUPREMO';
+    this.width = 32;
+    this.height = 32;
+    this.vy = 40; // Descenso suave
+    this.dead = false;
+    this.wobble = Math.random() * Math.PI * 2;
+  }
+
+  update(dt, world, player) {
+    if (this.dead) return false;
+
+    this.wobble += dt * 3;
+    this.y += this.vy * dt;
+    this.x += Math.sin(this.wobble) * 20 * dt;
+
+    if (this.y > 660) {
+      this.dead = true;
+      return false;
+    }
+
+    // Colisión con el jugador / helicóptero (solo se recoge si faltan cohetes: máximo 5)
+    const pX = player.inVehicle && player.tank ? player.tank.x : player.x;
+    const pY = player.inVehicle && player.tank ? player.tank.y : player.y;
+    if ((player.helicopterRockets || 0) < 5 && Math.hypot(pX - this.x, pY - this.y) < 55) {
+      this.collect(player);
+      return false;
+    }
+
+    return true;
+  }
+
+  takeDamage(amount, player) {
+    // Con los 5 cohetes llenos la caja no se gasta
+    if (player && (player.helicopterRockets || 0) >= 5) return;
+    this.collect(player);
+  }
+
+  collect(player) {
+    this.dead = true;
+    if (player.helicopterRockets !== undefined) {
+      player.helicopterRockets = Math.min(5, player.helicopterRockets + 5); // tope: 5 cohetes
+      if (typeof updateHeliHud === 'function') updateHeliHud();
+    }
+    if (audio.playPowerup) audio.playPowerup();
+    particleSystem.createSparks(this.x, this.y, 0, -2, 12, '#38bdf8');
+  }
+
+  draw(ctx, camera) {
+    const rx = this.x - camera.x;
+    const ry = this.y - camera.y;
+
+    ctx.save();
+    ctx.translate(rx, ry);
+
+    // Paracaídas blanco/naranja
+    ctx.fillStyle = '#ff9800';
+    ctx.beginPath();
+    ctx.arc(0, -22, 20, Math.PI, 0);
+    ctx.fill();
+    ctx.strokeStyle = '#e65100';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // Cuerdas
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(-18, -22); ctx.lineTo(-6, -6);
+    ctx.moveTo(18, -22); ctx.lineTo(6, -6);
+    ctx.stroke();
+
+    // Caja de munición con cohete pintado
+    ctx.fillStyle = '#0284c7';
+    ctx.fillRect(-12, -6, 24, 20);
+    ctx.strokeStyle = '#38bdf8';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(-12, -6, 24, 20);
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 12px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('🚀', 0, 9);
+
+    ctx.restore();
+  }
+}
+
+// ============================================================================
+// JEFE NIVEL 4: HELICÓPTERO DE COMBATE GIGANTE (TITÁN AÉREO)
+// Metralleta con ráfagas y cohetes guiados. Al ser derrotado cae envuelto en llamas.
+// ============================================================================
+class GiantBossHelicopter {
+  constructor(x, y) {
+    this.x = x;
+    this.y = y;
+    this.width = 240;
+    this.height = 125;
+    this.hp = 1350; // Dificultad media equilibrada y desafiante
+    this.maxHp = 1350;
+    this.name = 'HELICÓPTERO GIGANTE DE COMBATE: TITÁN-X';
+    this.destroyed = false;
+    this.dead = false;
+
+    // Fases de vuelo y oscilación
+    this.baseY = y;
+    this.flightTimer = 0;
+    this.rotorAngle = 0;
+    this.facing = -1;
+
+    // Temporizadores de ataque
+    this.machinegunTimer = 1.0;
+    this.rocketTimer = 3.2;
+    this.burstLeft = 0;
+    this.burstCooldown = 0;
+
+    // Estado de caída en llamas
+    this.falling = false;
+    this.fallVy = 0;
+    this.fallVx = 0;
+    this.fallRotation = 0;
+    this.smokeTimer = 0;
+  }
+
+  update(dt, player) {
+    this.rotorAngle += dt * 42;
+
+    // Si ya fue derrotado: Plummets hacia el suelo envuelto en llamas
+    if (this.falling) {
+      this.fallVy += 160 * dt;
+      this.fallVx += 40 * dt;
+      this.y += this.fallVy * dt;
+      this.x += this.fallVx * dt;
+      this.fallRotation += dt * 0.8;
+
+      this.smokeTimer += dt;
+      if (this.smokeTimer > 0.04) {
+        this.smokeTimer = 0;
+        particleSystem.createFire(this.x + (Math.random() - 0.5) * 80, this.y + (Math.random() - 0.5) * 40, 3);
+        particleSystem.createSmoke(this.x - 30, this.y, 4, -2);
+      }
+      return;
+    }
+
+    if (this.destroyed) return;
+
+    this.flightTimer += dt * 1.8;
+    // Movimiento oscilatorio suave en altura
+    this.y = this.baseY + Math.sin(this.flightTimer) * 55;
+
+    const tx = player.inVehicle && player.tank ? player.tank.x : player.x;
+    const ty = player.inVehicle && player.tank ? player.tank.y : player.y;
+
+    // Mantenerse a distancia táctica del jugador
+    if (this.x - tx > 480) {
+      this.x -= 80 * dt;
+    } else if (this.x - tx < 320) {
+      this.x += 60 * dt;
+    }
+
+    // 1. Ráfagas de ametralladora gemela
+    this.machinegunTimer -= dt;
+    this.burstCooldown -= dt;
+
+    if (this.machinegunTimer <= 0) {
+      this.burstLeft = 6; // 6 disparos por andanada
+      this.machinegunTimer = 3.0;
+    }
+
+    if (this.burstLeft > 0 && this.burstCooldown <= 0) {
+      this.burstCooldown = 0.12;
+      this.burstLeft--;
+
+      const angle = Math.atan2(ty - (this.y + 20), tx - (this.x - 70));
+      const spd = 7.8;
+      projectiles.push(new Projectile(
+        this.x - 70, this.y + 20,
+        Math.cos(angle) * spd, Math.sin(angle) * spd,
+        WEAPON_TYPES.RIFLE,
+        'enemy',
+        18
+      ));
+      audio.playShootMinigun();
+      particleSystem.createMuzzleFlash(this.x - 70, this.y + 20, angle);
+    }
+
+    // 2. Cohetes pesados guiados desde los lanzadores alares
+    this.rocketTimer -= dt;
+    if (this.rocketTimer <= 0) {
+      this.rocketTimer = 4.2;
+      audio.playShootRocket();
+
+      for (let i = 0; i < 2; i++) {
+        setTimeout(() => {
+          if (!this.destroyed) {
+            projectiles.push(new EnemyMissile(this.x - 40, this.y - 15 + i * 35, tx, ty));
+          }
+        }, i * 260);
+      }
+    }
+  }
+
+  takeDamage(amount, hitX, hitY) {
+    if (this.destroyed || this.falling) return;
+    this.hp -= amount;
+    particleSystem.createSparks(hitX || this.x - 40, hitY || this.y, 2, -1, 8, '#ff9800');
+
+    if (this.hp <= 0) {
+      this.destroyBase();
+    }
+  }
+
+  destroyBase() {
+    this.destroyed = true;
+    this.falling = true;
+    this.hp = 0;
+    this.fallVy = 50;
+    this.fallVx = 40;
+
+    // Hacer que el jugador avance hacia adelante
+    if (typeof window.onHelicopterBossDefeated === 'function') {
+      window.onHelicopterBossDefeated();
+    }
+
+    audio.playExplosion(2.5);
+    particleSystem.createExplosion(this.x, this.y, 120, 60);
+
+    // Explosiones continuas de desintegración
+    for (let i = 0; i < 20; i++) {
+      setTimeout(() => {
+        const rx = this.x + (Math.random() - 0.5) * this.width;
+        const ry = this.y + (Math.random() - 0.5) * this.height;
+        audio.playExplosion(1.2);
+        particleSystem.createExplosion(rx, ry, 60, 35);
+        particleSystem.createFire(rx, ry, 3);
+      }, i * 150);
+    }
+
+    // Notificar victoria tras caída en llamas (3.5 segundos)
+    // Cuando termina de caer en llamas: cinemática y luego banner de misión cumplida
+    setTimeout(() => {
+      if (typeof window.onHelicopterBossFell === 'function') {
+        window.onHelicopterBossFell();
+      } else if (typeof window.onBaseDestroyed === 'function') {
+        window.onBaseDestroyed();
+      }
+    }, 3500);
+  }
+
+  draw(ctx, camera) {
+    const rx = this.x - camera.x;
+    const ry = this.y - camera.y;
+
+    ctx.save();
+    ctx.translate(rx, ry);
+    if (this.falling) {
+      ctx.rotate(this.fallRotation);
+    }
+
+    // Fuselaje del helicóptero gigante militar
+    ctx.fillStyle = '#1c2820';
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 110, 48, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#ff3344';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+
+    // Blindaje y paneles de camuflaje
+    ctx.fillStyle = '#26382b';
+    ctx.fillRect(-60, -20, 100, 40);
+    ctx.strokeStyle = '#435e4a';
+    ctx.strokeRect(-60, -20, 100, 40);
+
+    // Cola extendida con doble alerón
+    ctx.fillStyle = '#152018';
+    ctx.beginPath();
+    ctx.moveTo(80, -12);
+    ctx.lineTo(170, -28);
+    ctx.lineTo(170, -6);
+    ctx.lineTo(80, 18);
+    ctx.closePath();
+    ctx.fill();
+
+    // Rotores gemelos de cola
+    ctx.fillStyle = '#111';
+    ctx.fillRect(170, -45, 6, 35);
+
+    // Cabina blindada frontal carmesí
+    ctx.fillStyle = '#ef4444';
+    ctx.beginPath();
+    ctx.ellipse(-75, -6, 32, 22, -0.15, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Lanzadores de cohetes montados en las alas laterales
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(-25, 28, 60, 18);
+    ctx.fillStyle = '#ef4444';
+    ctx.fillRect(-22, 32, 8, 8);
+    ctx.fillRect(-10, 32, 8, 8);
+    ctx.fillRect(2, 32, 8, 8);
+
+    // Torreta de metralletas gemelas delantera
+    ctx.fillStyle = '#111';
+    ctx.fillRect(-105, 12, 36, 10);
+    ctx.fillStyle = '#94a3b8';
+    ctx.fillRect(-115, 14, 12, 6);
+
+    // Mástil y rotor colosal
+    ctx.fillStyle = '#111';
+    ctx.fillRect(-8, -64, 16, 20);
+    const bladeSpan = Math.cos(this.rotorAngle) * 160;
+    ctx.fillRect(-bladeSpan, -68, bladeSpan * 2, 7);
+
+    // Llamas activas si está dañado severamente
+    if (this.hp < this.maxHp * 0.4 || this.falling) {
+      ctx.fillStyle = '#ff4400';
+      ctx.beginPath();
+      ctx.arc(30, -15, 20, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.restore();
+  }
+}
+
+// ============================================================================
+// JEFE FINAL NIVEL 5: COMANDANTE MALVADO (OJOS ROJOS Y MOVILIDAD ÁGIL)
+// Sin armadura mecánica. Se mueve, salta entre plataformas y esquiva disparos.
+// ============================================================================
+class EvilCommanderBoss {
+  constructor(x, y) {
+    this.x = x;
+    this.y = y;
+    this.width = 38;
+    this.height = 58;
+    this.hp = 1250; // Dificultad equilibrada y desafiante
+    this.maxHp = 1250;
+    this.name = 'COMANDANTE MALVADO';
     this.dead = false;
     this.destroyed = false;
 
-    // Física y movimiento
+    // Física y saltos
     this.vx = 0;
     this.vy = 0;
-    this.facing = -1; // -1 mirando a la izquierda
+    this.speed = 3.6;
+    this.jumpForce = -10.5;
+    this.gravity = 24;
     this.isGrounded = true;
+    this.facing = -1;
     this.baseGroundY = y;
 
-    // Fases y Máquina de Estados
-    this.phase = 1; // 1: >70%, 2: 70-35%, 3: <35% (Modo Sobrecarga Berserker)
-    this.state = 'IDLE'; // 'IDLE', 'MINIGUN', 'ROCKETS', 'SHIELD', 'CYBER_DASH', 'GROUND_SLAM'
-    this.stateTimer = 1.2;
+    // Animación y esquivas
+    this.dodgeCooldown = 0;
+    this.isDodging = false;
+    this.dodgeTimer = 0;
+    this.walkCycle = 0;
+    this.jumpTimer = 2.4;
 
-    // Ráfaga Minigun
-    this.minigunShotsLeft = 0;
-    this.minigunShotCooldown = 0;
+    // Ataques
+    this.attackTimer = 1.0;
+    this.burstShots = 0;
+    this.burstCooldown = 0;
 
-    // Escudo de plasma
-    this.shieldActive = false;
-    this.shieldTimer = 0;
-
-    // Cyber-Dash
-    this.dashTimer = 0;
-    this.dashAfterimages = [];
-
-    // Burbuja de diálogo táctico
-    this.dialogText = '¡AL FIN LLEGAS, COMANDO! ¡ESTA SELVA SERÁ TU TUMBA!';
-    this.dialogTimer = 4.0;
-    this.capeTimer = 0;
+    // Diálogos
+    this.dialogText = '¡COMANDO! ¡NO SALDRÁS VIVO DE ESTE TEMPLO!';
+    this.dialogTimer = 3.5;
   }
 
   update(dt, player) {
     if (this.dead) return;
 
-    this.capeTimer += dt;
+    this.walkCycle += dt * 8;
     if (this.dialogTimer > 0) this.dialogTimer -= dt;
-
-    // Determinar fase según porcentaje de vida
-    const hpPct = this.hp / this.maxHp;
-    if (hpPct > 0.7) {
-      this.phase = 1;
-    } else if (hpPct > 0.35) {
-      if (this.phase === 1) {
-        this.dialogText = '¡ACTIVANDO ESCUDO TÁCTICO Y MISILES EN JAMBA!';
-        this.dialogTimer = 3.5;
-      }
-      this.phase = 2;
-    } else {
-      if (this.phase === 2) {
-        this.dialogText = '¡SOBRECARGA AL 100%! ¡CONTEMPLA LA PERFECCIÓN CIBERNÉTICA!';
-        this.dialogTimer = 4.0;
-      }
-      this.phase = 3;
-    }
+    if (this.dodgeCooldown > 0) this.dodgeCooldown -= dt;
 
     const tx = player.inVehicle && player.tank ? player.tank.x : player.x;
     const ty = player.inVehicle && player.tank ? player.tank.y : player.y;
     this.facing = tx < this.x ? -1 : 1;
 
-    // Actualizar estela de afterimages del dash
-    for (let i = this.dashAfterimages.length - 1; i >= 0; i--) {
-      this.dashAfterimages[i].alpha -= dt * 2.8;
-      if (this.dashAfterimages[i].alpha <= 0) this.dashAfterimages.splice(i, 1);
+    // 1. Detección y esquiva ágil de proyectiles del jugador
+    if (this.dodgeCooldown <= 0 && !this.isDodging) {
+      for (const p of projectiles) {
+        if (p.owner === 'player' && Math.hypot(p.x - this.x, p.y - this.y) < 140) {
+          // El villano intenta esquivar saltando o rodando
+          this.dodgeCooldown = 1.4;
+          if (this.isGrounded && Math.random() < 0.65) {
+            // Salto evasivo hacia arriba / plataforma
+            this.vy = this.jumpForce;
+            this.isGrounded = false;
+            audio.playJump();
+          } else {
+            // Rodada / dash táctico evasivo
+            this.isDodging = true;
+            this.dodgeTimer = 0.25;
+            this.vx = -this.facing * 340;
+          }
+          break;
+        }
+      }
     }
 
-    // Escudo de plasma activo
-    if (this.shieldActive) {
-      this.shieldTimer -= dt;
-      if (this.shieldTimer <= 0) this.shieldActive = false;
-    }
-
-    // Máquina de estados de combate
-    this.stateTimer -= dt;
-
-    if (this.state === 'IDLE') {
-      // Movimiento táctico
-      const targetDist = 280;
-      const curDist = Math.abs(tx - this.x);
-
-      if (curDist > targetDist + 50) {
-        this.vx = this.facing * (this.phase === 3 ? 240 : 180);
-      } else if (curDist < targetDist - 50) {
-        this.vx = -this.facing * (this.phase === 3 ? 190 : 140);
-      } else {
+    // Gestionar estado de rodada/esquiva
+    if (this.isDodging) {
+      this.dodgeTimer -= dt;
+      if (this.dodgeTimer <= 0) {
+        this.isDodging = false;
         this.vx = 0;
-      }
-
-      if (this.stateTimer <= 0) {
-        this.chooseNextAttack(curDist);
-      }
-    } else if (this.state === 'MINIGUN') {
-      this.vx = 0;
-      this.minigunShotCooldown -= dt;
-      if (this.minigunShotCooldown <= 0 && this.minigunShotsLeft > 0) {
-        this.minigunShotCooldown = this.phase === 3 ? 0.08 : 0.12;
-        this.minigunShotsLeft--;
-
-        const angle = Math.atan2(ty - (this.y + 35), tx - (this.x + this.facing * 30));
-        const spread = (Math.random() - 0.5) * 0.12;
-        const spd = 8.5;
-        projectiles.push(new Projectile(
-          this.x + (this.facing === 1 ? 40 : -10),
-          this.y + 38,
-          Math.cos(angle + spread) * spd,
-          Math.sin(angle + spread) * spd,
-          WEAPON_TYPES.RIFLE,
-          'enemy',
-          16
-        ));
-        audio.playShootMinigun();
-      }
-
-      if (this.minigunShotsLeft <= 0 && this.stateTimer <= 0) {
-        this.state = 'IDLE';
-        this.stateTimer = this.phase === 3 ? 0.6 : 1.2;
-      }
-    } else if (this.state === 'CYBER_DASH') {
-      // Desplazamiento supersónico
-      this.dashTimer -= dt;
-      if (Math.random() < 0.6) {
-        this.dashAfterimages.push({ x: this.x, y: this.y, alpha: 0.8, color: '#c084fc' });
-      }
-
-      // Daño por contacto si embiste al jugador
-      if (Math.hypot(player.x - this.x, player.y - this.y) < 45) {
-        player.takeDamage(35, 'corte de energía');
-      }
-
-      if (this.dashTimer <= 0) {
-        this.vx = 0;
-        this.state = 'IDLE';
-        this.stateTimer = 0.8;
-      }
-    } else if (this.state === 'GROUND_SLAM') {
-      // Salto propulsado hacia arriba y caída en picada
-      this.vy += 1200 * dt;
-      this.y += this.vy * dt;
-
-      if (this.y >= this.baseGroundY) {
-        this.y = this.baseGroundY;
-        this.vy = 0;
-        this.isGrounded = true;
-
-        // Impacto sísmico devastador
-        camera.shake = 16;
-        audio.playGroundSlam();
-        particleSystem.createExplosion(this.x + 30, this.y + 70, 70, 40);
-
-        // Ondas de choque que avanzan por el suelo en ambas direcciones
-        projectiles.push(new Projectile(this.x + 20, this.y + 70, -7.0, 0, WEAPON_TYPES.ROCKET, 'enemy', 24));
-        projectiles.push(new Projectile(this.x + 40, this.y + 70, 7.0, 0, WEAPON_TYPES.ROCKET, 'enemy', 24));
-
-        this.dialogText = '¡SIENTE EL PODER DEL TERREMOTO!';
-        this.dialogTimer = 2.5;
-
-        this.state = 'IDLE';
-        this.stateTimer = 1.0;
-      }
-    }
-
-    // Aplicar física horizontal si no está en ground slam
-    if (this.state !== 'GROUND_SLAM') {
-      this.x += this.vx * dt;
-      this.x = Math.max(3400, Math.min(4400, this.x)); // Confinado a la arena del templo
-    }
-  }
-
-  chooseNextAttack(distToPlayer) {
-    const roll = Math.random();
-
-    if (this.phase === 1) {
-      if (roll < 0.65) {
-        this.startMinigun(8);
-      } else {
-        this.startRockets(2);
-      }
-    } else if (this.phase === 2) {
-      if (roll < 0.4) {
-        this.startShield();
-      } else if (roll < 0.7) {
-        this.startRockets(3);
-      } else {
-        this.startMinigun(12);
       }
     } else {
-      // Fase 3: Berserker con Cyber-Dash y Terremoto
-      if (roll < 0.35) {
-        this.startCyberDash();
-      } else if (roll < 0.65) {
-        this.startGroundSlam();
-      } else if (roll < 0.85) {
-        this.startMinigun(14);
+      // Movimiento táctico continuo (no se queda quieto)
+      const dist = Math.abs(tx - this.x);
+      if (dist > 300) {
+        this.vx = this.facing * this.speed * 60;
+      } else if (dist < 140) {
+        this.vx = -this.facing * (this.speed * 1.1) * 60;
       } else {
-        this.startRockets(4);
+        // Oscilación lateral
+        this.vx = Math.sin(this.walkCycle) * 70;
       }
     }
-  }
 
-  startMinigun(shots) {
-    this.state = 'MINIGUN';
-    this.minigunShotsLeft = shots;
-    this.minigunShotCooldown = 0;
-    this.stateTimer = 1.8;
-  }
-
-  startShield() {
-    this.state = 'SHIELD';
-    this.shieldActive = true;
-    this.shieldTimer = 3.0;
-    this.dialogText = '¡ESCUDO DE PLASMA IMPENETRABLE!';
-    this.dialogTimer = 2.5;
-    this.stateTimer = 3.2;
-    audio.playShieldDeflect();
-  }
-
-  startRockets(count) {
-    this.state = 'ROCKETS';
-    this.stateTimer = 1.5;
-    this.dialogText = '¡MISILES EN JAMBA DIRECTOS A TU POSICIÓN!';
-    this.dialogTimer = 2.5;
-
-    for (let i = 0; i < count; i++) {
-      setTimeout(() => {
-        if (!this.dead) {
-          projectiles.push(new EnemyMissile(this.x + 20, this.y, player.x, player.y));
-          audio.playMissileLaunch();
-        }
-      }, i * 220);
+    // 2. Saltos tácticos periódicos entre plataformas
+    this.jumpTimer -= dt;
+    if (this.jumpTimer <= 0 && this.isGrounded) {
+      this.jumpTimer = 2.0 + Math.random() * 2.0;
+      this.vy = this.jumpForce;
+      this.isGrounded = false;
+      audio.playJump();
     }
 
-    setTimeout(() => {
-      if (!this.dead) {
-        this.state = 'IDLE';
-        this.stateTimer = 0.8;
+    // 3. Física de gravedad y suelo/plataformas
+    this.vy += this.gravity * dt * 60;
+    this.x += this.vx * dt;
+    this.y += this.vy * dt;
+
+    // Límites de la arena final del templo
+    this.x = Math.max(7150, Math.min(8050, this.x));
+
+    const groundY = (typeof world !== 'undefined' && world.getGroundHeight) ? world.getGroundHeight(this.x) : 580;
+    let landed = false;
+
+    // Colisión con plataformas elevadas
+    if (typeof world !== 'undefined' && world.getPlatformAt) {
+      const plat = world.getPlatformAt(this.x, this.y + this.height / 2, this.vy);
+      if (plat) {
+        this.y = plat.y - this.height / 2;
+        this.vy = 0;
+        this.isGrounded = true;
+        landed = true;
       }
-    }, count * 220 + 300);
-  }
+    }
 
-  startCyberDash() {
-    this.state = 'CYBER_DASH';
-    this.dashTimer = 0.55;
-    this.vx = this.facing * 700;
-    this.dialogText = '¡CYBER-DASH TÁCTICO!';
-    this.dialogTimer = 2.0;
-    audio.playCyberDash();
-  }
+    if (!landed) {
+      if (this.y + this.height / 2 >= groundY) {
+        this.y = groundY - this.height / 2;
+        this.vy = 0;
+        this.isGrounded = true;
+      } else {
+        this.isGrounded = false;
+      }
+    }
 
-  startGroundSlam() {
-    this.state = 'GROUND_SLAM';
-    this.vy = -620; // Propulsión vertical
-    this.isGrounded = false;
-    audio.playCyberDash();
+    // 4. Ataques del comandante malvado
+    this.attackTimer -= dt;
+    this.burstCooldown -= dt;
+
+    if (this.attackTimer <= 0) {
+      this.attackTimer = 2.4;
+      this.burstShots = 3; // Ráfaga de 3 disparos precisos
+      if (Math.random() < 0.4) {
+        this.dialogText = '¡NO TIENES ESCAPATORIA!';
+        this.dialogTimer = 2.0;
+      }
+    }
+
+    if (this.burstShots > 0 && this.burstCooldown <= 0) {
+      this.burstCooldown = 0.14;
+      this.burstShots--;
+
+      const angle = Math.atan2(ty - (this.y - 4), tx - this.x);
+      const spd = 8.0;
+      projectiles.push(new Projectile(
+        this.x + this.facing * 18, this.y - 4,
+        Math.cos(angle) * spd, Math.sin(angle) * spd,
+        WEAPON_TYPES.RIFLE,
+        'enemy',
+        20
+      ));
+      audio.playShootRifle();
+      particleSystem.createMuzzleFlash(this.x + this.facing * 18, this.y - 4, angle);
+    }
   }
 
   takeDamage(amount, hitX, hitY) {
     if (this.dead) return;
-
-    // Si el escudo está activo y el disparo viene de frente, rebotar
-    if (this.shieldActive) {
-      const isFrontHit = (this.facing === -1 && (hitX < this.x + 40)) || (this.facing === 1 && (hitX > this.x + 20));
-      if (isFrontHit) {
-        audio.playShieldDeflect();
-        particleSystem.createSparks(hitX, hitY, -this.facing * 4, 0, 8, '#00ffff');
-        return; // Sin daño si impacta en el escudo
-      }
-    }
-
     this.hp -= amount;
-    particleSystem.createSparks(hitX || this.x + 30, hitY || this.y + 40, -this.facing * 2, -1, 6, '#ffd700');
+    particleSystem.createBloodSpurt(this.x, this.y);
 
     if (this.hp <= 0 && !this.dead) {
       this.destroyBase();
@@ -1350,21 +1636,17 @@ class SuperSoldierBoss {
     this.dead = true;
     this.destroyed = true;
     this.hp = 0;
-    this.dialogText = '¡IMPOSIBLE... MI ARMADURA... HA SIDO SUPERADA...! ¡ARGHHH!';
-    this.dialogTimer = 5.0;
+    this.vx = 0;
+    this.vy = 0;
 
-    // Cadena masiva de sobrecargas y explosiones sobre el exoesqueleto
-    for (let i = 0; i < 24; i++) {
-      setTimeout(() => {
-        const rx = this.x + (Math.random() - 0.5) * 60;
-        const ry = this.y + Math.random() * this.height;
-        audio.playExplosion(1.4);
-        particleSystem.createExplosion(rx, ry, 70, 45);
-        particleSystem.createSparks(rx, ry, (Math.random() - 0.5) * 6, -Math.random() * 6, 12, '#c084fc');
-      }, i * 140);
-    }
+    audio.playExplosion(1.5);
+    particleSystem.createExplosion(this.x, this.y, 60, 40);
 
-    if (typeof window.onBaseDestroyed === 'function') {
+    // Disparar la cinemática final requerida:
+    // El soldado parado mirando el cadáver del comandante y 4 helicópteros llegando
+    if (typeof window.onEvilCommanderDefeated === 'function') {
+      window.onEvilCommanderDefeated();
+    } else if (typeof window.onBaseDestroyed === 'function') {
       window.onBaseDestroyed();
     }
   }
@@ -1374,99 +1656,113 @@ class SuperSoldierBoss {
     const ry = this.y - camera.y;
 
     ctx.save();
+    ctx.translate(rx, ry);
+    ctx.scale(this.facing, 1);
 
-    // 1. Dibujar afterimages del cyber-dash
-    for (const img of this.dashAfterimages) {
-      ctx.save();
-      ctx.globalAlpha = img.alpha * 0.5;
-      ctx.fillStyle = img.color;
-      ctx.fillRect(img.x - camera.x, img.y - camera.y, this.width, this.height);
+    // Si está muerto, dibujarlo derrotado en el suelo
+    if (this.dead) {
+      ctx.fillStyle = '#1e293b';
+      ctx.fillRect(-25, 12, 50, 10);
+      ctx.fillStyle = '#d4a373';
+      ctx.beginPath();
+      ctx.arc(-30, 16, 6, 0, Math.PI * 2);
+      ctx.fill();
       ctx.restore();
+      return;
     }
 
-    // 2. Capa militar rasgada
-    const capeWave = Math.sin(this.capeTimer * 6) * 12;
-    ctx.fillStyle = this.phase === 3 ? '#b91c1c' : '#7f1d1d';
+    // 1. Capa oscura de comandante ondeando
+    const capeSwing = Math.sin(this.walkCycle) * 8;
+    ctx.fillStyle = '#450a0a';
     ctx.beginPath();
-    ctx.moveTo(rx + (this.facing === 1 ? 15 : 45), ry + 22);
-    ctx.lineTo(rx + (this.facing === 1 ? -25 : 85) + capeWave, ry + 75);
-    ctx.lineTo(rx + (this.facing === 1 ? 5 : 55), ry + 80);
+    ctx.moveTo(-10, -15);
+    ctx.lineTo(-24 + capeSwing, 22);
+    ctx.lineTo(-6, 20);
     ctx.closePath();
     ctx.fill();
 
-    // 3. Exoesqueleto blindado de titanio (Cuerpo y armadura)
-    ctx.fillStyle = this.phase === 3 ? '#1c1917' : '#262626';
-    ctx.fillRect(rx + 14, ry + 18, 34, 48); // Torso
+    // 2. Piernas y botas de oficial
+    const legSwing = Math.sin(this.walkCycle) * (Math.abs(this.vx) > 0.1 ? 7 : 0);
+    ctx.fillStyle = '#0f172a'; // Pantalón oscuro
+    ctx.fillRect(-7 + legSwing, 6, 6, 18);
+    ctx.fillRect(2 - legSwing, 6, 6, 18);
 
-    // Placas de blindaje pectoral
-    ctx.fillStyle = this.phase === 3 ? '#991b1b' : '#3f3f46';
-    ctx.fillRect(rx + 16, ry + 22, 30, 22);
-    ctx.strokeStyle = this.phase === 3 ? '#f87171' : '#71717a';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(rx + 16, ry + 22, 30, 22);
+    // 3. Torso: Capote / Guerrera militar de oficial
+    ctx.fillStyle = '#1e293b';
+    ctx.fillRect(-10, -18, 20, 24);
 
-    // Núcleo del reactor en el pecho
-    ctx.fillStyle = this.phase === 3 ? '#ef4444' : (this.phase === 2 ? '#f59e0b' : '#06b6d4');
+    // Hombreras doradas de comandante
+    ctx.fillStyle = '#ffd700';
+    ctx.fillRect(-12, -18, 6, 4);
+    ctx.fillRect(6, -18, 6, 4);
+
+    // Cinturón y botones dorados
+    ctx.fillStyle = '#ffd700';
+    ctx.fillRect(-1, -12, 3, 3);
+    ctx.fillRect(-1, -6, 3, 3);
+    ctx.fillStyle = '#b45309';
+    ctx.fillRect(-10, 2, 20, 3);
+
+    // 4. Cabeza del comandante
+    ctx.fillStyle = '#d4a373';
     ctx.beginPath();
-    ctx.arc(rx + 31, ry + 33, 7, 0, Math.PI * 2);
+    ctx.arc(0, -25, 7, 0, Math.PI * 2);
     ctx.fill();
 
-    // Piernas blindadas
+    // OJOS ROJOS BRILLANTES (REQUERIMIENTO EXPLÍCITO)
+    ctx.fillStyle = '#ff0033';
+    ctx.shadowColor = '#ff0033';
+    ctx.shadowBlur = 8;
+    ctx.beginPath();
+    ctx.arc(3, -26, 2.2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    // Gorra militar de oficial de alto rango con visera
     ctx.fillStyle = '#1e293b';
-    ctx.fillRect(rx + 16, ry + 66, 12, 22);
-    ctx.fillRect(rx + 34, ry + 66, 12, 22);
+    ctx.fillRect(-9, -33, 18, 6);
+    ctx.fillStyle = '#ffd700'; // Escudo / insignia águila dorada en la gorra
+    ctx.fillRect(-3, -32, 6, 3);
+    ctx.fillStyle = '#0f172a'; // Visera negra
+    ctx.fillRect(0, -28, 12, 3);
 
-    // Casco cibernético con visor luminoso
-    ctx.fillStyle = '#0f172a';
-    ctx.fillRect(rx + 18, ry, 26, 20);
-    ctx.fillStyle = this.phase === 3 ? '#ff0033' : '#00ffff';
-    ctx.fillRect(rx + (this.facing === 1 ? 26 : 18), ry + 6, 18, 5); // Visor
+    // 5. Rifle / Arma de oficial en mano
+    ctx.fillStyle = '#111';
+    ctx.fillRect(4, -8, 22, 6);
+    ctx.fillStyle = '#ffd700';
+    ctx.fillRect(2, -6, 4, 3);
 
-    // Hombrera con lanzamisiles
-    ctx.fillStyle = '#475569';
-    ctx.fillRect(rx + (this.facing === 1 ? 8 : 42), ry + 16, 14, 14);
-    ctx.fillStyle = '#ef4444';
-    ctx.fillRect(rx + (this.facing === 1 ? 10 : 44), ry + 18, 4, 4);
+    // 6. Barra de vida encima del comandante
+    ctx.fillStyle = '#ff1744';
+    ctx.fillRect(-18, -44, (this.hp / this.maxHp) * 36, 4);
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(-18, -44, 36, 4);
 
-    // Brazo con Vulcan Minigun rotatoria
-    ctx.fillStyle = '#0f172a';
-    const gunX = rx + (this.facing === 1 ? 42 : -8);
-    ctx.fillRect(gunX, ry + 32, 28, 12);
-    ctx.fillStyle = '#94a3b8';
-    ctx.fillRect(gunX + (this.facing === 1 ? 28 : -14), ry + 34, 14, 8); // Cañones
-
-    // 4. Escudo de plasma hexagonal si está activo
-    if (this.shieldActive) {
-      ctx.strokeStyle = '#00ffff';
-      ctx.lineWidth = 3.5;
-      ctx.fillStyle = 'rgba(0, 255, 255, 0.25)';
-      const shieldX = rx + (this.facing === 1 ? 52 : -15);
-      ctx.beginPath();
-      ctx.arc(shieldX, ry + 44, 42, -Math.PI * 0.45, Math.PI * 0.45, this.facing === -1);
-      ctx.stroke();
-      ctx.fill();
-    }
-
-    // 5. Burbuja de diálogo táctica encima de su cabeza
+    // Burbuja de diálogo si está hablando
     if (this.dialogTimer > 0 && this.dialogText) {
-      ctx.font = '700 13px "Rajdhani", sans-serif';
-      const textWidth = ctx.measureText(this.dialogText).width;
-      const bubbleW = textWidth + 24;
-      const bubbleH = 28;
-      const bubbleX = rx + 31 - bubbleW / 2;
-      const bubbleY = ry - 42;
-
-      ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
-      ctx.strokeStyle = this.phase === 3 ? '#ef4444' : '#c084fc';
-      ctx.lineWidth = 2;
-      ctx.fillRect(bubbleX, bubbleY, bubbleW, bubbleH);
-      ctx.strokeRect(bubbleX, bubbleY, bubbleW, bubbleH);
-
+      ctx.save();
+      ctx.font = 'bold 9px "Orbitron", sans-serif';
+      const tw = ctx.measureText(this.dialogText).width;
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+      ctx.fillRect(-tw / 2 - 5, -62, tw + 10, 14);
+      ctx.strokeStyle = '#ff0033';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(-tw / 2 - 5, -62, tw + 10, 14);
       ctx.fillStyle = '#ffffff';
-      ctx.fillText(this.dialogText, bubbleX + 12, bubbleY + 18);
+      ctx.textAlign = 'center';
+      ctx.fillText(this.dialogText, 0, -52);
+      ctx.restore();
     }
 
     ctx.restore();
   }
 }
 
+// Compatibilidad
+window.EnemyHelicopter = EnemyHelicopter;
+window.HeliRocketCrate = HeliRocketCrate;
+window.GiantBossHelicopter = GiantBossHelicopter;
+window.EvilCommanderBoss = EvilCommanderBoss;
+window.SuperSoldierBoss = EvilCommanderBoss;
+window.RadarComplexBoss = GiantBossHelicopter;
